@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProtocolLab Base Specification",
+  "description": "Minimal schema for .ksy-compatible protocol specifications",
+  "type": "object",
+  "required": ["meta"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "Unique identifier (snake_case)"
+        },
+        "title":       { "type": "string" },
+        "version":     { "type": "string" },
+        "description": { "type": "string" },
+        "endian": {
+          "type": "string",
+          "enum": ["le", "be"],
+          "description": "Byte order: le (little-endian) or be (big-endian)"
+        },
+        "file-extension": {
+          "oneOf": [
+            { "type": "string" },
+            { "type": "array", "items": { "type": "string" } }
+          ]
+        },
+        "encoding": { "type": "string" },
+        "imports":  { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "seq": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "types":     { "type": "object" },
+    "instances": { "type": "object" },
+    "enums":     { "type": "object" },
+    "imports": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "doc":     { "type": "string" },
+    "doc-ref": { "type": "string" }
+  },
+  "additionalProperties": true
+}
