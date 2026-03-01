@@ -1,0 +1,28 @@
+meta:
+  id: tcp_like
+  endian: le
+  description: "TCP-like protocol that imports base_types"
+
+imports:
+  - base_types.yaml
+
+seq:
+  - id: src_port
+    type: u2
+    doc: "Source port"
+  - id: dst_port
+    type: u2
+    doc: "Destination port"
+  - id: sequence_number
+    type: u4
+    doc: "Sequence number"
+  - id: has_checksum
+    type: u1
+    doc: "1 if checksum field is present"
+  - id: checksum
+    type: u4
+    doc: "Optional checksum"
+    if: has_checksum != 0
+  - id: timestamp
+    type: timestamp_t
+    doc: "Packet timestamp (imported type)"

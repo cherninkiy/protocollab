@@ -3,6 +3,13 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# ProtocolLab Professional (not open-source)
+# These files are local-only and must NOT be pushed to the public repo:
+src/protocollab/generators/cpp_generator.py
+src/protocollab/generators/templates/cpp/
+src/protocollab/tests/test_cpp_generator.py
+
+
 # C extensions
 *.so
 

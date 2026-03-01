@@ -1,0 +1,23 @@
+meta:
+  id: base_types
+  endian: le
+  description: "Reusable base types"
+
+seq: []
+
+types:
+  timestamp_t:
+    doc: "32-bit seconds + 32-bit microseconds"
+    seq:
+      - id: seconds
+        type: u4
+      - id: microseconds
+        type: u4
+
+  mac_address_t:
+    doc: "6-byte MAC address"
+    seq:
+      - id: bytes
+        type: u1
+        repeat: expr
+        repeat-expr: "6"

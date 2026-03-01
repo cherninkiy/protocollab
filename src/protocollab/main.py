@@ -16,7 +16,7 @@ import click
 from protocollab.exceptions import FileLoadError, YAMLParseError
 from protocollab.loader import load_protocol
 from protocollab.utils import check_file_exists, print_data
-from protocollab.validator import validate_protocol
+from protocollab.validator import validate_pipeline, validate_protocol
 from protocollab.generators import generate, GeneratorError
 
 
@@ -148,7 +148,7 @@ def validate(file: str, schema, strict: bool) -> None:
         )
 
     try:
-        result = validate_protocol(file, schema_path=schema_path)
+        result = validate_pipeline(file, schema_path=schema_path)
     except FileLoadError as exc:
         click.echo(f"Error: {exc}", err=True)
         sys.exit(1)
@@ -156,14 +156,27 @@ def validate(file: str, schema, strict: bool) -> None:
         click.echo(f"YAML error: {exc}", err=True)
         sys.exit(2)
 
-    if result.is_valid:
+    if result.is_valid and not result.warnings:
         click.echo(f"Valid: {file}")
+    elif result.is_valid:
+        click.echo(f"Valid: {file} ({len(result.warnings)} warning(s))")
+        for i, w in enumerate(result.warnings, 1):
+            click.echo(f"  [W{i}] {w.path}: {w.message}")
     else:
         click.echo(
             f"Validation failed: {file} ({len(result.errors)} error(s))", err=True
         )
-        for i, err in enumerate(result.errors, 1):
-            click.echo(f"  [{i}] {err.path}: {err.message}", err=True)
+        if result.errors:
+            click.echo("\n  ERRORS:", err=True)
+            for i, err in enumerate(result.errors, 1):
+                click.echo(f"    [{i}] {err.path}: {err.message}", err=True)
+        if result.warnings:
+            click.echo(f"\n  WARNINGS ({len(result.warnings)}):", err=True)
+            for i, w in enumerate(result.warnings, 1):
+                click.echo(f"    [W{i}] {w.path}: {w.message}", err=True)
+        if strict and result.warnings and result.is_valid:
+            click.echo("(--strict: treating warnings as errors)", err=True)
+            sys.exit(3)
         sys.exit(3)
 
 
@@ -222,6 +235,23 @@ def generate_python(file: str, output: str) -> None:
 def generate_wireshark(file: str, output: str) -> None:
     """Generate a Wireshark Lua dissector."""
     _run_generate(file, target="wireshark", output=output)
+
+
+@generate_cmd.command(name="cpp")
+@click.argument("file", type=click.Path())
+@click.option("--output", "-o", type=click.Path(), default="./build", show_default=True)
+def generate_cpp(file: str, output: str) -> None:
+    """[Pro Preview] Generate a C++20 parser (header-only)."""
+    try:
+        from protocollab.generators.cpp_generator import CppGenerator  # noqa: F401
+    except ImportError:
+        click.echo(
+            "C++ generation requires ProtocolLab Professional. "
+            "The cpp_generator module is not available in this installation.",
+            err=True,
+        )
+        sys.exit(4)
+    _run_generate(file, target="cpp", output=output)
 
 
 # ---------------------------------------------------------------------------
