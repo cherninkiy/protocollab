@@ -5,7 +5,7 @@
 We take the security of `protocollab` seriously. If you believe you've found a security vulnerability, please follow these steps:
 
 1. **Do not disclose the vulnerability publicly** (e.g., in GitHub Issues, Discussions, or Twitter).
-2. **Send a private report** to [YOUR_EMAIL] or use GitHub's private vulnerability reporting tool (if enabled).
+2. **Send a private report** to cherninkiy@gmail.com or use GitHub's private vulnerability reporting tool (if enabled).
 3. Provide as much information as possible:
    - Description of the vulnerability
    - Steps to reproduce
