@@ -186,7 +186,7 @@ class TestFieldDefAlias:
         assert field.if_expr == "has_flag != 0"
 
     def test_if_expr_python_name(self) -> None:
-        field = FieldDef(id="checksum", type="u4", if_expr="has_flag")
+        field = FieldDef.model_validate({"id": "checksum", "type": "u4", "if": "has_flag"})
         assert field.if_expr == "has_flag"
 
     def test_repeat_expr_alias(self) -> None:
@@ -196,7 +196,7 @@ class TestFieldDefAlias:
         assert field.repeat_expr == "count"
 
     def test_none_by_default(self) -> None:
-        field = FieldDef(id="x", type="u1")
+        field = FieldDef.model_validate({"id": "x", "type": "u1"})
         assert field.if_expr is None
         assert field.repeat_expr is None
 
@@ -271,7 +271,8 @@ class TestTypeDef:
 
     def test_typedef_with_fields(self) -> None:
         td = TypeDef(
-            seq=[FieldDef(id="x", type="u1"), FieldDef(id="y", type="u2")],
+            seq=[FieldDef.model_validate({"id": "x", "type": "u1"}),
+                 FieldDef.model_validate({"id": "y", "type": "u2"})],
             doc="Two bytes",
         )
         assert len(td.seq) == 2
