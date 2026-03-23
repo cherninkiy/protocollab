@@ -153,6 +153,7 @@ def load_yaml_root(main_yaml_path, config=None):
     _CTX._max_imports = config.get('max_imports', 100)
     logger.debug("Security config: root_dir=%s, max_file_size=%s, max_struct_depth=%s, max_include_depth=%s, max_imports=%s", _CTX._root_dir, _CTX._max_file_size, _CTX._max_struct_depth, _CTX._max_include_depth, _CTX._max_imports)
     _CTX._yaml_instance = create_yaml_instance(register_include_representer=True, max_depth=_CTX._max_struct_depth, base_depth=0)
+    assert _CTX._yaml_instance is not None
     _CTX._yaml_instance.constructor.add_constructor(INCLUDE_TAG, include_constructor)
     logger.debug("Added !include constructor")
     _CTX._root_filename = main_path
@@ -163,6 +164,7 @@ def load_yaml_root(main_yaml_path, config=None):
     _CTX._loading_stack.append(main_path)
     with open(main_path, 'r', encoding='utf-8') as f:
         logger.debug("Loading YAML content from %s", main_path)
+        assert _CTX._yaml_instance is not None
         data = _CTX._yaml_instance.load(f)
     _CTX._loading_stack.pop()
     mark_node(data, main_path)

@@ -208,6 +208,9 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Pyright static type checker for Python.
+pyrightconfig.json
+
 # Marimo
 marimo/_static/
 marimo/_lsp/

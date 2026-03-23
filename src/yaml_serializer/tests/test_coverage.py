@@ -239,6 +239,7 @@ class TestRoundTrip:
 
         # Дамп через ruamel.yaml (через YAML instance)
         out = io.StringIO()
+        assert _CTX._yaml_instance is not None
         _CTX._yaml_instance.dump(data, out)
         dumped = out.getvalue()
 
