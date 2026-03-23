@@ -42,6 +42,7 @@ def test_construct_mapping_and_sequence_depth():
 		logger.warning(f"[TEST] deep_seq exception: {type(e)} {e}")
 	else:
 		logger.warning("[TEST] deep_seq: no exception raised")
+
 # Тесты для RestrictedSafeConstructor и create_safe_yaml_instance
 import io
 import pytest
@@ -67,8 +68,19 @@ def test_block_unknown_custom_tag():
 	with pytest.raises(YAMLError):
 		yaml.load(io.StringIO(unknown))
 
-def test_max_depth_limit():
-	yaml = create_safe_yaml_instance(max_depth=3)
-	deep = 'a:\n  b:\n    c:\n      d: 1'
-	with pytest.raises(ValueError):
-		yaml.load(io.StringIO(deep))
+def test_max_depth_none_raises():
+	with pytest.raises(ValueError, match="max_depth cannot be None"):
+		RestrictedSafeConstructor(max_depth=None)
+
+def test_max_depth_zero_raises():
+	with pytest.raises(ValueError, match="max_depth must be a positive integer"):
+		RestrictedSafeConstructor(max_depth=0)
+
+def test_max_depth_negative_raises():
+	with pytest.raises(ValueError, match="max_depth must be a positive integer"):
+		RestrictedSafeConstructor(max_depth=-1)
+
+def test_valid_max_depth_works():
+	cons = RestrictedSafeConstructor(max_depth=10)
+	assert cons.max_depth == 10
+

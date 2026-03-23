@@ -82,8 +82,11 @@ class TestDepthLimits:
         data = load_yaml_root(main_yaml, config={'max_include_depth': 10, 'max_struct_depth': 10})
         # Проверяем, что структура раскрыта корректно: на каждом уровне — словарь, финальное значение — строка
         assert data['root']['data']['data']['data']['data'] == 'final'
+
     def test_structural_max_depth_limit(self, temp_dir, create_yaml_file):
         """Проверка ограничения max_depth для обычных вложенных структур."""
+        from yaml_serializer.safe_constructor import create_safe_yaml_instance
+        
         main_yaml = os.path.join(temp_dir, 'main.yaml')
         # Создаем YAML с глубокой структурой (10 уровней)
         content = 'a:'
@@ -94,7 +97,6 @@ class TestDepthLimits:
 
         # С max_depth=10 должно выбросить ошибку
         with pytest.raises(ValueError, match="Exceeded maximum nesting depth"):
-            from yaml_serializer.safe_constructor import create_safe_yaml_instance
             yaml = create_safe_yaml_instance(max_depth=10)
             with open(main_yaml, 'r', encoding='utf-8') as f:
                 yaml.load(f)
@@ -110,7 +112,9 @@ class TestDepthLimits:
                     data = None  # Превышение лимита глубины — допустимый результат
                 else:
                     raise
+        assert data is not None
         assert data['a']['level0']['level1']['level2']['level3']['level4'] is not None
+
     def test_max_include_depth_limit(self, temp_dir, create_yaml_file):
         """Проверка ограничения глубины включений."""
         # Создаем цепочку включений глубиной 5

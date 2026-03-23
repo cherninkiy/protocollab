@@ -14,13 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 class RestrictedSafeConstructor(RoundTripConstructor):
-    def _check_and_incr_depth(self):
-        self._depth += 1
-        if self.max_depth is not None and self._depth > self.max_depth:
-            self._depth -= 1
-            raise ValueError(f"Exceeded maximum nesting depth of {self.max_depth}")
-
-    def __init__(self, max_depth=None, base_depth=0, *args, **kwargs):
+    def __init__(self, max_depth=50, base_depth=0, *args, **kwargs):
+        if max_depth is None:
+            raise ValueError("max_depth cannot be None; set a positive integer")
+        if not isinstance(max_depth, int) or max_depth <= 0:
+            raise ValueError("max_depth must be a positive integer")
         super().__init__(*args, **kwargs)
         self.max_depth = max_depth
         self._depth = base_depth
@@ -82,14 +80,22 @@ class RestrictedSafeConstructor(RoundTripConstructor):
         for tag in to_remove:
             del self.yaml_constructors[tag]
 
+    def _check_and_incr_depth(self):
+        """
+        Проверяет и увеличивает текущую глубину вложенности.
+        Выбрасывает исключение при превышении лимита.
+        """
+        self._depth += 1
+        if self._depth > self.max_depth:
+            self._depth -= 1
+            raise ValueError(f"Exceeded maximum nesting depth of {self.max_depth}")
+
     def _check_structure_depth(self, data, current):
         """
         Рекурсивная проверка глубины структуры после парсинга.
         Используется как fallback для последовательностей, у которых
         проверка во время парсинга может быть подавлена генераторным механизмом.
         """
-        if self.max_depth is None:
-            return
         if current > self.max_depth:
             raise ValueError(f"Exceeded maximum nesting depth of {self.max_depth}")
         if isinstance(data, dict):
@@ -107,11 +113,16 @@ class RestrictedSafeConstructor(RoundTripConstructor):
         return result
 
 
-def create_safe_yaml_instance(max_depth=50, base_depth=0):
+def create_safe_yaml_instance(max_depth: int = 50, base_depth: int = 0):
     """
     Создаёт безопасный экземпляр YAML с round-trip preservation,
     поддержкой только тега !include и ограничением глубины вложенности.
     """
+    if max_depth is None:
+        raise ValueError("max_depth cannot be None; set a positive integer")
+    if not isinstance(max_depth, int) or max_depth <= 0:
+        raise ValueError("max_depth must be a positive integer")
+        
     from ruamel.yaml import YAML
 
     yaml = YAML()

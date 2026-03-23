@@ -18,7 +18,7 @@ from yaml_serializer.utils import (
     update_file_attr,
 )
 from yaml_serializer.modify import add_to_dict, add_to_list
-from yaml_serializer.safe_constructor import create_safe_yaml_instance
+from yaml_serializer.safe_constructor import create_safe_yaml_instance, RestrictedSafeConstructor
 from yaml_serializer.serializer import (
     _CTX,
     rename_yaml_file,
@@ -183,16 +183,35 @@ class TestIncludeConstructorOutsideContext:
         with pytest.raises(ValueError, match="outside of file loading context"):
             yaml_inst.load(io.StringIO('data: !include some.yaml'))
 
-
 # ---------------------------------------------------------------------------
-# safe_constructor.py – _check_structure_depth при max_depth=None  [early return]
+# safe_constructor.py – max_depth validation
 # ---------------------------------------------------------------------------
 
-class TestCheckStructureDepthNone:
+class TestMaxDepthValidation:
+    def test_max_depth_none_raises_value_error(self):
+        """Передача max_depth=None должна вызывать ValueError."""
+        with pytest.raises(ValueError, match="max_depth cannot be None"):
+            create_safe_yaml_instance(max_depth=None)
+
+    def test_max_depth_zero_raises_value_error(self):
+        """Передача max_depth=0 должна вызывать ValueError."""
+        with pytest.raises(ValueError, match="max_depth must be a positive integer"):
+            create_safe_yaml_instance(max_depth=0)
+
+    def test_max_depth_negative_raises_value_error(self):
+        """Передача отрицательного max_depth должна вызывать ValueError."""
+        with pytest.raises(ValueError, match="max_depth must be a positive integer"):
+            create_safe_yaml_instance(max_depth=-1)
+
+    def test_max_depth_positive_works(self):
+        """Положительное целое max_depth работает корректно."""
+        # Просто проверяем, что объект создаётся без ошибок
+        yaml = create_safe_yaml_instance(max_depth=10)
+        assert yaml is not None
+
     def test_no_depth_limit_allows_any_depth(self):
-        """create_safe_yaml_instance(max_depth=None) не поднимает исключений ни на какой глубине."""
-        # Собираем глубоко вложенный YAML (60 уровней) через стандартный ruamel.yaml
-        data: dict = {'value': 1}
+        """create_safe_yaml_instance с большим max_depth позволяет загружать глубокие структуры."""
+        data = {'value': 1}
         for i in range(60):
             data = {f'l{i}': data}
         y = ruamel.yaml.YAML()
@@ -200,10 +219,8 @@ class TestCheckStructureDepthNone:
         y.dump(data, buf)
         yaml_str = buf.getvalue()
 
-        loader = create_safe_yaml_instance(max_depth=None)
-        # Не должно бросать исключений
-        loader.load(yaml_str)
-
+        loader = create_safe_yaml_instance(max_depth=10000)  # достаточно большое число
+        loader.load(yaml_str)  # не должно бросать исключений
 
 # ---------------------------------------------------------------------------
 # Проверка Round-trip: сохраняются комментарии и форматирование
@@ -222,6 +239,7 @@ class TestRoundTrip:
 
         # Дамп через ruamel.yaml (через YAML instance)
         out = io.StringIO()
+        assert _CTX._yaml_instance is not None
         _CTX._yaml_instance.dump(data, out)
         dumped = out.getvalue()
 

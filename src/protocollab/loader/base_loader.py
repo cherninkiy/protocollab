@@ -65,7 +65,8 @@ class ProtocolLoader:
 
         logger.debug("Loading protocol from %s", abs_path)
         raw = self._load_raw(abs_path)
-        result: ProtocolData = canonical_repr(raw)
+        result = canonical_repr(raw)
+        assert isinstance(result, dict)
         self._cache.set(abs_path, result)
         return result
 

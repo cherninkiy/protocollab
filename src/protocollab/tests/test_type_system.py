@@ -132,7 +132,7 @@ class TestAliases:
 
 class TestCompositeType:
     def _make_u4_field(self, name: str) -> ResolvedField:
-        fd = FieldDef(id=name, type="u4")
+        fd = FieldDef.model_validate({"id": name, "type": "u4"})
         return ResolvedField(field_def=fd, resolved_type=PRIMITIVE_TYPES["u4"])
 
     def test_empty_composite(self) -> None:
@@ -142,10 +142,8 @@ class TestCompositeType:
 
     def test_from_def(self) -> None:
         td = TypeDef(
-            seq=[
-                FieldDef(id="seconds", type="u4"),
-                FieldDef(id="microseconds", type="u4"),
-            ],
+            seq=[FieldDef.model_validate({"id": "seconds", "type": "u4"}),
+                 FieldDef.model_validate({"id": "microseconds", "type": "u4"})],
             doc="Timestamp",
         )
         reg = TypeRegistry()
@@ -155,13 +153,13 @@ class TestCompositeType:
         assert ct.doc == "Timestamp"
 
     def test_from_def_resolves_types(self) -> None:
-        td = TypeDef(seq=[FieldDef(id="x", type="u4")])
+        td = TypeDef(seq=[FieldDef.model_validate({"id": "x", "type": "u4"})])
         reg = TypeRegistry()
         ct = CompositeType.from_def("t", td, reg)
         assert ct.fields[0].resolved_type is PRIMITIVE_TYPES["u4"]
 
     def test_from_def_unknown_type_keeps_none(self) -> None:
-        td = TypeDef(seq=[FieldDef(id="x", type="ghost_type")])
+        td = TypeDef(seq=[FieldDef.model_validate({"id": "x", "type": "ghost_type"})])
         reg = TypeRegistry()
         ct = CompositeType.from_def("t", td, reg)
         assert ct.fields[0].resolved_type is None
@@ -374,8 +372,8 @@ class TestCalculateSize:
         ct = CompositeType(
             name="ts",
             fields=[
-                ResolvedField(field_def=FieldDef(id="s", type="u4"), resolved_type=u4),
-                ResolvedField(field_def=FieldDef(id="us", type="u4"), resolved_type=u4),
+                ResolvedField(field_def=FieldDef.model_validate({"id": "s", "type": "u4"}), resolved_type=u4),
+                ResolvedField(field_def=FieldDef.model_validate({"id": "us", "type": "u4"}), resolved_type=u4),
             ],
         )
         assert calculate_size(ct) == 8
@@ -386,8 +384,8 @@ class TestCalculateSize:
         ct = CompositeType(
             name="mixed",
             fields=[
-                ResolvedField(field_def=FieldDef(id="len", type="u4"), resolved_type=u4),
-                ResolvedField(field_def=FieldDef(id="name", type="str"), resolved_type=strtype),
+                ResolvedField(field_def=FieldDef.model_validate({"id": "len", "type": "u4"}), resolved_type=u4),
+                ResolvedField(field_def=FieldDef.model_validate({"id": "name", "type": "str"}), resolved_type=strtype),
             ],
         )
         assert calculate_size(ct) is None
@@ -427,7 +425,7 @@ class TestCalculateSize:
             name="unresolved",
             fields=[
                 ResolvedField(
-                    field_def=FieldDef(id="x", type="ghost"),
+                    field_def=FieldDef.model_validate({"id": "x", "type": "ghost"}),
                     resolved_type=None,
                 ),
             ],
@@ -439,15 +437,15 @@ class TestCalculateSize:
         inner = CompositeType(
             name="inner",
             fields=[
-                ResolvedField(field_def=FieldDef(id="a", type="u4"), resolved_type=u4),
-                ResolvedField(field_def=FieldDef(id="b", type="u4"), resolved_type=u4),
+                ResolvedField(field_def=FieldDef.model_validate({"id": "a", "type": "u4"}), resolved_type=u4),
+                ResolvedField(field_def=FieldDef.model_validate({"id": "b", "type": "u4"}), resolved_type=u4),
             ],
         )  # inner size = 8
         outer = CompositeType(
             name="outer",
             fields=[
-                ResolvedField(field_def=FieldDef(id="hdr", type="inner"), resolved_type=inner),
-                ResolvedField(field_def=FieldDef(id="extra", type="u4"), resolved_type=u4),
+                ResolvedField(field_def=FieldDef.model_validate({"id": "hdr", "type": "inner"}), resolved_type=inner),
+                ResolvedField(field_def=FieldDef.model_validate({"id": "extra", "type": "u4"}), resolved_type=u4),
             ],
         )
         assert calculate_size(outer) == 12  # 8 + 4
@@ -471,4 +469,4 @@ class TestCalculateSize:
         )
         reg = TypeRegistry().build(spec)
         ct = reg.resolve("hdr")
-        assert calculate_size(ct) == 3  # u1 + u2 = 1 + 2
+        assert calculate_size(ct) == 3
