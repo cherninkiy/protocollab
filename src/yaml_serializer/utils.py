@@ -10,7 +10,7 @@ from ruamel.yaml.comments import CommentedMap, CommentedSeq
 logger = logging.getLogger(__name__)
 
 def canonical_repr(node):
-    """Создаёт каноническое представление YAML-узла для хэширования."""
+    """Build a canonical Python representation of a YAML node for hashing."""
     logger.debug("Building canonical representation for %s", type(node).__name__)
     if isinstance(node, CommentedMap):
         items = [(k, canonical_repr(v)) for k, v in node.items()]
@@ -22,7 +22,7 @@ def canonical_repr(node):
         return node
 
 def compute_hash(node):
-    """Вычисляет SHA-256 хэш канонического представления узла."""
+    """Compute the SHA-256 hash of a YAML node's canonical representation."""
     logger.debug("Computing hash for node")
     rep = canonical_repr(node)
     json_str = json.dumps(rep, sort_keys=True, ensure_ascii=False).encode('utf-8')
@@ -54,7 +54,7 @@ def save_hash_to_file(yaml_path: str, hash_value: str) -> None:
         f.write(hash_value)
 
 def update_file_attr(node, new_file):
-    """Рекурсивно обновляет _yaml_file у узлов, stateless."""
+    """Recursively update ``_yaml_file`` on all descendant nodes."""
     if isinstance(node, (CommentedMap, CommentedSeq)):
         node._yaml_file = new_file
         if isinstance(node, CommentedMap):
@@ -65,11 +65,7 @@ def update_file_attr(node, new_file):
                 update_file_attr(item, new_file)
 
 def is_path_within_root(path: str, root_dir: str) -> bool:
-    """Проверяет, находится ли абсолютный путь внутри корневой директории.
-    
-    Returns:
-        True, если path находится внутри root_dir, иначе False.    
-    """
+    """Return True if *path* resolves to a location inside *root_dir*, else False."""
     try:
         Path(path).resolve().relative_to(Path(root_dir).resolve())
         return True
@@ -77,7 +73,7 @@ def is_path_within_root(path: str, root_dir: str) -> bool:
         return False
 
 def mark_dirty(node):
-    """Рекурсивно помечает узел и родителей как грязные, stateless."""
+    """Mark *node* as dirty and propagate up through the parent chain."""
     if node is None:
         return
     old_hash = getattr(node, '_yaml_hash', None)
@@ -88,7 +84,7 @@ def mark_dirty(node):
         mark_dirty(node._yaml_parent)
 
 def mark_node(node, filename, parent=None):
-    """Рекурсивно помечает узлы файла и родителя, stateless."""
+    """Recursively stamp *filename* and initial hash onto nodes belonging to that file."""
     if isinstance(node, (CommentedMap, CommentedSeq)):
         if hasattr(node, '_yaml_file') and node._yaml_file != filename:
             return
@@ -107,7 +103,7 @@ def mark_node(node, filename, parent=None):
                 mark_node(item, filename, parent=node)
 
 def clear_dirty(node):
-    """Рекурсивно сбрасывает dirty-флаг, stateless."""
+    """Recursively clear the dirty flag on *node* and all its descendants."""
     if isinstance(node, (CommentedMap, CommentedSeq)):
         node._yaml_dirty = False
         logger.debug("Cleared dirty flag for node %s", node)
