@@ -1,5 +1,5 @@
 import logging
-from .serializer import load_yaml_root, save_yaml_root, propagate_dirty, rename_yaml_file
+from .serializer import SerializerSession
 from .modify import (
     new_commented_map,
     new_commented_seq,
@@ -11,5 +11,5 @@ from .modify import (
     get_node_hash,
 )
 
-# Добавляем NullHandler для библиотечного логгера
+# Register a NullHandler so library users see no output by default.
 logging.getLogger(__name__).addHandler(logging.NullHandler())
