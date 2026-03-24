@@ -3,7 +3,7 @@ from yaml_serializer.safe_constructor import RestrictedSafeConstructor
 
 def test_remove_dangerous_constructors():
 	cons = RestrictedSafeConstructor()
-	# Добавим опасный тег вручную
+	# Add a dangerous tag manually
 	cons.yaml_constructors['tag:yaml.org,2002:python/object'] = lambda x, y: None
 	cons._remove_dangerous_constructors()
 	assert 'tag:yaml.org,2002:python/object' not in cons.yaml_constructors
@@ -25,7 +25,7 @@ def test_construct_mapping_and_sequence_depth():
 	from yaml_serializer.safe_constructor import create_safe_yaml_instance
 	import logging
 	logger = logging.getLogger("test_safe_constructor")
-	# Проверяем глубину для mapping через парсинг YAML-строки
+	# Verify depth for mapping via YAML string parsing
 	yaml = create_safe_yaml_instance(max_depth=1)
 	deep_mapping = 'a:\n  b:\n    c: 1'
 	try:
@@ -34,7 +34,7 @@ def test_construct_mapping_and_sequence_depth():
 		logger.warning(f"[TEST] deep_mapping exception: {type(e)} {e}")
 	else:
 		logger.warning("[TEST] deep_mapping: no exception raised")
-	# Проверяем глубину для sequence через парсинг YAML-строки
+	# Verify depth for sequence via YAML string parsing
 	deep_seq = '-\n  -\n    - 1'
 	try:
 		yaml.load(io.StringIO(deep_seq))
@@ -43,7 +43,7 @@ def test_construct_mapping_and_sequence_depth():
 	else:
 		logger.warning("[TEST] deep_seq: no exception raised")
 
-# Тесты для RestrictedSafeConstructor и create_safe_yaml_instance
+# Tests for RestrictedSafeConstructor and create_safe_yaml_instance
 import io
 import pytest
 from ruamel.yaml.error import YAMLError

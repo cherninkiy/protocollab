@@ -1,5 +1,5 @@
 """
-Тесты для модуля modify.py - модификация YAML структур.
+Tests for modify.py — YAML structure modification helpers.
 """
 
 import pytest
@@ -16,16 +16,16 @@ from yaml_serializer import (
 
 
 class TestNewCommented:
-    """Тесты для создания новых узлов."""
+    """Tests for new node factories."""
     
     def test_new_commented_map_empty(self):
-        """Создание пустого CommentedMap."""
+        """new_commented_map() creates an empty dirty CommentedMap."""
         dct = new_commented_map()
         assert len(dct) == 0
         assert dct._yaml_dirty is True
     
     def test_new_commented_map_with_initial_data(self):
-        """new_commented_map с начальными данными."""
+        """new_commented_map(initial=...) populates the map with the given items."""
         initial = [('key1', 'val1'), ('key2', 'val2')]
         dct = new_commented_map(initial=initial)
         assert dct['key1'] == 'val1'
@@ -33,13 +33,13 @@ class TestNewCommented:
         assert dct._yaml_dirty is True
     
     def test_new_commented_seq_empty(self):
-        """Создание пустого CommentedSeq."""
+        """new_commented_seq() creates an empty dirty CommentedSeq."""
         seq = new_commented_seq()
         assert len(seq) == 0
         assert seq._yaml_dirty is True
     
     def test_new_commented_seq_with_initial_data(self):
-        """new_commented_seq с начальными данными."""
+        """new_commented_seq(initial=...) populates the sequence with the given items."""
         initial = ['item1', 'item2', 'item3']
         seq = new_commented_seq(initial=initial)
         assert len(seq) == 3
@@ -48,10 +48,10 @@ class TestNewCommented:
 
 
 class TestDictOperations:
-    """Тесты для операций со словарями."""
+    """Tests for dictionary manipulation helpers."""
     
     def test_add_to_dict_simple_value(self):
-        """Добавление простого значения в словарь."""
+        """add_to_dict adds a key-value pair and marks the dict dirty."""
         dct = new_commented_map()
         dct._yaml_dirty = False
         
@@ -61,7 +61,7 @@ class TestDictOperations:
         assert dct._yaml_dirty is True
     
     def test_add_to_dict_with_commented_value(self):
-        """add_to_dict с CommentedMap в качестве значения."""
+        """add_to_dict sets _yaml_parent on a CommentedMap value."""
         parent = new_commented_map()
         child = new_commented_map({'nested': 'value'})
         add_to_dict(parent, 'child', child)
@@ -71,7 +71,7 @@ class TestDictOperations:
         assert child._yaml_parent is parent
     
     def test_add_to_dict_else_branch(self):
-        """Проверяет ветку else в add_to_dict: value не CommentedMap/Seq."""
+        """add_to_dict with a non-CommentedMap/Seq value still marks the dict dirty."""
         from yaml_serializer.modify import add_to_dict, new_commented_map
         dct = new_commented_map()
         dct._yaml_dirty = False
@@ -80,21 +80,21 @@ class TestDictOperations:
         assert dct._yaml_dirty is True
     
     def test_update_in_dict_existing_key(self):
-        """update_in_dict должен обновлять существующий ключ."""
+        """update_in_dict replaces the value for an existing key."""
         dct = new_commented_map({'key': 'old_value'})
         update_in_dict(dct, 'key', 'new_value')
         assert dct['key'] == 'new_value'
         assert dct._yaml_dirty is True
     
     def test_update_in_dict_new_key(self):
-        """update_in_dict должен добавлять новый ключ, если его нет."""
+        """update_in_dict adds a new key when the key does not exist yet."""
         dct = new_commented_map({'existing': 'value'})
         update_in_dict(dct, 'new_key', 'new_value')
         assert dct['new_key'] == 'new_value'
         assert 'existing' in dct
     
     def test_remove_from_dict_existing_key(self):
-        """remove_from_dict должен удалять существующий ключ."""
+        """remove_from_dict removes an existing key and marks the dict dirty."""
         dct = new_commented_map({'key1': 'val1', 'key2': 'val2'})
         remove_from_dict(dct, 'key1')
         assert 'key1' not in dct
@@ -102,18 +102,18 @@ class TestDictOperations:
         assert dct._yaml_dirty is True
     
     def test_remove_from_dict_nonexistent_key(self):
-        """remove_from_dict не должен ничего делать для несуществующего ключа."""
+        """remove_from_dict is a no-op for a key that does not exist."""
         dct = new_commented_map({'key1': 'val1'})
-        # Не должно вызывать исключение
+        # Must not raise an exception
         remove_from_dict(dct, 'nonexistent')
         assert 'key1' in dct
 
 
 class TestListOperations:
-    """Тесты для операций со списками."""
+    """Tests for list manipulation helpers."""
     
     def test_add_to_list_simple_value(self):
-        """Добавление простого значения в список."""
+        """add_to_list appends a value and marks the list dirty."""
         lst = new_commented_seq()
         lst._yaml_dirty = False
         
@@ -124,7 +124,7 @@ class TestListOperations:
         assert lst._yaml_dirty is True
     
     def test_add_to_list_with_commented_item(self):
-        """add_to_list с CommentedMap в качестве элемента."""
+        """add_to_list sets _yaml_parent on a CommentedMap item."""
         lst = new_commented_seq()
         item = new_commented_map({'key': 'value'})
         add_to_list(lst, item)
@@ -134,7 +134,7 @@ class TestListOperations:
         assert item._yaml_parent is lst
     
     def test_remove_from_list(self):
-        """Удаление элемента из списка по индексу."""
+        """remove_from_list removes the element at the given index."""
         lst = new_commented_seq(['first', 'second', 'third'])
         remove_from_list(lst, 0)
         
@@ -144,17 +144,17 @@ class TestListOperations:
 
 
 class TestNodeHash:
-    """Тесты для функции get_node_hash."""
+    """Tests for get_node_hash()."""
     
     def test_recalculates_when_dirty(self):
-        """get_node_hash должен пересчитывать хэш для грязных узлов."""
+        """get_node_hash recomputes the hash and clears the dirty flag."""
         node = new_commented_map({'key': 'value'})
         node._yaml_dirty = True
         
         hash1 = get_node_hash(node)
         assert node._yaml_dirty is False
         
-        # Изменяем и снова получаем хэш
+        # Modify and retrieve the hash again
         node['key'] = 'new_value'
         node._yaml_dirty = True
         hash2 = get_node_hash(node)
@@ -162,11 +162,11 @@ class TestNodeHash:
         assert hash1 != hash2
     
     def test_returns_cached_hash_for_clean_node(self):
-        """get_node_hash должен возвращать кэшированный хэш для чистого узла."""
+        """get_node_hash returns the cached hash without recomputing for a clean node."""
         node = new_commented_map({'key': 'value'})
         hash1 = get_node_hash(node)
         
-        # Второй вызов должен вернуть тот же хэш без пересчета
+        # Second call must return the same hash without recomputing
         node._yaml_dirty = False
         hash2 = get_node_hash(node)
         
@@ -179,7 +179,7 @@ class TestNodeHash:
     lambda d: add_to_dict(d, 'another', 123),
 ])
 def test_dict_operations_mark_dirty(operation):
-    """Все операции словаря должны помечать узел как dirty."""
+    """All dictionary mutation operations must mark the node as dirty."""
     dct = new_commented_map({'key': 'value'})
     dct._yaml_dirty = False
     

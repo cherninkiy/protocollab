@@ -1,5 +1,5 @@
 """
-Тесты для функций хэширования - канонизация и хеширование данных.
+Tests for canonical representation and hashing utilities.
 """
 
 import pytest
@@ -8,17 +8,17 @@ from yaml_serializer.utils import canonical_repr, compute_hash
 
 
 class TestCanonicalRepr:
-    """Тесты для функции canonical_repr."""
+    """Tests for canonical_repr()."""
     
     def test_primitive_types(self):
-        """canonical_repr должен корректно обрабатывать примитивные типы."""
+        """canonical_repr must pass through primitive Python types unchanged."""
         assert canonical_repr(42) == 42
         assert canonical_repr("string") == "string"
         assert canonical_repr(None) is None
         assert canonical_repr(True) is True
     
     def test_nested_structures(self):
-        """canonical_repr для вложенных структур."""
+        """canonical_repr converts nested CommentedMap/Seq to plain dicts/lists."""
         data = CommentedMap()
         data['level1'] = CommentedMap()
         data['level1']['level2'] = CommentedSeq(['a', 'b'])
@@ -29,7 +29,7 @@ class TestCanonicalRepr:
         assert canonical['level1']['level2'] == ['a', 'b']
     
     def test_sorts_dict_keys(self):
-        """canonical_repr должен сортировать ключи словаря."""
+        """canonical_repr must sort dictionary keys for determinism."""
         data = CommentedMap()
         data['z'] = 1
         data['a'] = 2
@@ -42,10 +42,10 @@ class TestCanonicalRepr:
 
 
 class TestComputeHash:
-    """Тесты для функции compute_hash."""
+    """Tests for compute_hash()."""
     
     def test_consistency(self):
-        """Хэш одинаковых структур должен быть одинаковым."""
+        """Identical structures must produce the same hash."""
         data1 = CommentedMap()
         data1['key'] = 'value'
         
@@ -56,10 +56,10 @@ class TestComputeHash:
         hash2 = compute_hash(data2)
         
         assert hash1 == hash2
-        assert len(hash1) == 64  # SHA-256 возвращает 64 hex символа
+        assert len(hash1) == 64  # SHA-256 returns 64 hex characters
     
     def test_different_for_different_data(self):
-        """Хэш разных структур должен быть разным."""
+        """Different structures must produce different hashes."""
         data1 = CommentedMap({'key': 'value1'})
         data2 = CommentedMap({'key': 'value2'})
         
@@ -69,7 +69,7 @@ class TestComputeHash:
         assert hash1 != hash2
     
     def test_order_independence(self):
-        """Хэш не должен зависеть от порядка добавления ключей."""
+        """Hash must not depend on the order in which keys were inserted."""
         data1 = CommentedMap()
         data1['b'] = 2
         data1['a'] = 1
