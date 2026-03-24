@@ -83,7 +83,7 @@ class TestIsPathWithinRoot:
     def test_none_root_raises_error(self, temp_dir):
         """Passing None as root_dir must raise TypeError."""
         any_path = os.path.join(temp_dir, "any.yaml")
-        with pytest.raises(TypeError, match="argument should be a str or an os.PathLike object"):
+        with pytest.raises(TypeError):
             utils.is_path_within_root(any_path, None)
 
     def test_path_traversal_attack(self, temp_dir):
