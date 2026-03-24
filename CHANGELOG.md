@@ -32,8 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   warning ([`ffeae03`]).
 
 - **`protocollab/loader/cache/memory_cache.py`**: `MemoryCache` now supports a
-  `max_size` bound with LRU eviction and per-instance cache statistics (`hits`,
-  `misses`, `evictions`) ([`ffeae03`]).
+  `max_size` bound with LRU eviction ([`ffeae03`]).
 
 - **`yaml_serializer/tests/test_session.py`**: New test module covering
   `SerializerSession` lifecycle, `clear()`/`reset()`, config override,

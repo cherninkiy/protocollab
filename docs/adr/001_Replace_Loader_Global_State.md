@@ -53,10 +53,10 @@ These improvements maintain the convenience of a one‑liner for simple scripts 
 - **Isolation**: multiple independent workloads can coexist without interference.
 - **Testability**: unit tests can create fresh sessions/loaders without cross‑test contamination.
 - **Flexibility**: different parts of an application can use different security settings or caching strategies.
-- **Backward compatibility**: existing code using the old functions continues to work (with deprecation warnings), easing migration.
+- **Backward compatibility (loader)**: existing code using the default `protocollab.loader` API continues to work, while advanced users gain explicit access to the shared loader configuration.
 
 ### Negative
-- **Migration effort**: users of `yaml_serializer` need to eventually switch to explicit sessions; the deprecation warnings will guide them.
+- **Migration effort (serializer)**: users of `yaml_serializer` must update code that called the removed top-level functions to use `SerializerSession` before upgrading.
 - **Slightly more code** in some use cases (explicit session creation), but the convenience of the global loader remains for simple scenarios.
 - **Potential confusion** about whether to use global or explicit instance; documentation will clearly explain the trade‑offs.
 
