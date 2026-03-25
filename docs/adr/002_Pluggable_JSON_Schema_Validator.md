@@ -71,7 +71,7 @@ The chosen approach offers the best long‑term maintainability and flexibility.
 - [`fastjsonschema`](https://github.com/horejsek/python-fastjsonschema)
 - [`jsonscreamer`](https://github.com/openedx/jsonscreamer)
 - [Pydantic](https://docs.pydantic.dev/) (future integration)
-- `protocollab` tracking issue: TBD (to be linked once created)
+- `protocollab` tracking issue: [#22](https://github.com/cherninkiy/protocollab/issues/22)
 
 ## Approval
 *Pending review*
