@@ -2,7 +2,7 @@
 
 ## English
 
-This folder contains an independent TCP-based demo for the generated parser and Wireshark dissector.
+This folder contains an independent TCP-based demo for the generated parser, L3 socket runtime, and Wireshark dissector.
 
 Generated files are written to `demo/l3/generated` and are intentionally not stored in the repository.
 Only `demo/l3/generated/.gitkeep` is tracked.
@@ -65,7 +65,7 @@ The `check` command performs three steps in order:
 
 ## Русский
 
-Эта папка содержит независимое TCP-демо для сгенерированного парсера и Wireshark-диссектора.
+Эта папка содержит независимое TCP-демо для сгенерированных парсера, L3 socket runtime и Wireshark-диссектора.
 
 Сгенерированные файлы записываются в `demo/l3/generated` и намеренно не хранятся в репозитории.
 В git отслеживается только `demo/l3/generated/.gitkeep`.
