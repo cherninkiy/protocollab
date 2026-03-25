@@ -6,11 +6,15 @@ from typing import Any, Dict, List
 from protocollab.generators.base_generator import BaseGenerator, GeneratorError
 from protocollab.generators.python_generator import PythonGenerator
 from protocollab.generators.lua_generator import LuaGenerator
+from protocollab.generators.mock_client import MockClientGenerator
+from protocollab.generators.mock_server import MockServerGenerator
 
 __all__ = [
     "generate",
     "PythonGenerator",
     "LuaGenerator",
+    "MockClientGenerator",
+    "MockServerGenerator",
     "BaseGenerator",
     "GeneratorError",
 ]
@@ -18,6 +22,8 @@ __all__ = [
 _GENERATORS: Dict[str, type] = {
     "python": PythonGenerator,
     "wireshark": LuaGenerator,
+    "mock-client": MockClientGenerator,
+    "mock-server": MockServerGenerator,
 }
 
 # Register Pro generators when available (local-only, not in public repo)
@@ -42,7 +48,8 @@ def generate(
     spec:
         Protocol specification dict (as returned by ``load_protocol``).
     target:
-        ``"python"`` or ``"wireshark"``.
+        One of ``"python"``, ``"wireshark"``, ``"mock-client"``,
+        ``"mock-server"``, or any additionally registered target.
     output_dir:
         Directory where generated files are written.
 
