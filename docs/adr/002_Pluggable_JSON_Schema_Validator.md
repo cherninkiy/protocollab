@@ -13,12 +13,12 @@ Several observations have been made:
   - **Untrusted or user‑provided schemas** require a safe backend that avoids code execution (e.g., `jsonschema` or `jsonscreamer`).
   - **Complex schemas** may need full draft support (currently `jsonschema` provides the best coverage).
 - The validation logic could be useful outside `protocollab` (e.g., in other Python projects that handle JSON/YAML configuration).
-- Future plans may include supporting OpenAPI, AsyncAPI, or other schema‑based formats, which could reuse a generic validation facade.
+- Future plans may include supporting multiple JSON Schema drafts/versions as well as additional schema‑based formats such as OpenAPI and AsyncAPI, which could reuse a generic validation facade.
 
 ## Decision
 We will create a **standalone, reusable Python module** called `jsonschema_validator` (or a similar name) that provides a unified interface for JSON Schema validation with pluggable backends. The module will:
 
-1. **Define an abstract base class** `BaseValidator` and a `ValidationResult` dataclass for unified output.
+1. **Define an abstract validation interface** and a unified validation result model for backend-agnostic output. Exact class names are intentionally left open at the ADR stage because the final naming should be aligned with the existing `protocollab.validator` types and may change depending on the final backend mix and integration shape.
 2. **Implement adapters** for at least three backends:
    - `jsonschema` – maximum compatibility, default fallback.
    - `fastjsonschema` – high performance (optional, uses `exec`).
@@ -26,7 +26,7 @@ We will create a **standalone, reusable Python module** called `jsonschema_valid
    - (future) Pydantic integration for model‑based validation.
 3. **Provide a factory** (`ValidatorFactory.create(backend="auto", cache=True, **options)`) that selects an available backend using the proposed default priority order `jsonscreamer` -> `jsonschema` -> `fastjsonschema`. Explicit backend selection remains available for callers that want to optimize primarily for speed or draft coverage.
 4. **Include caching** of compiled validators (keyed by schema hash + backend version) to avoid repeated compilation overhead.
-5. **Normalize error messages** across backends to a common format (including JSON Pointer‑style paths where possible).
+5. **Normalize error messages** across backends to a common internal format. The externally visible user-facing error path format should remain compatible with the current dot-notation style used by `protocollab` (for example, `meta.id` or `seq[0].type`), even if the internal normalization layer uses a different representation.
 6. **Integrate into `protocollab`** by replacing direct `jsonschema` calls with the new module and exposing a CLI option `--validator-backend` for the `validate` command.
 7. **Publish the module as part of the `protocollab` monorepo** with its own tests, documentation, and optional dependencies, but keep it completely independent (no imports from `protocollab.*`).
 
