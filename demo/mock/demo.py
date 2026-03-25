@@ -4,10 +4,14 @@
 import argparse
 import importlib
 import queue
+import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
+
+from protocollab.generators import MockClientGenerator, MockServerGenerator, generate
+from protocollab.loader import load_protocol
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DEMO_MOCK_DIR = Path(__file__).resolve().parent
@@ -26,48 +30,34 @@ def _clean_generated_dir() -> None:
     GENERATED_DIR.mkdir(exist_ok=True)
     for path in GENERATED_DIR.glob("*.py"):
         path.unlink()
+    for path in GENERATED_DIR.iterdir():
+        if path.is_dir():
+            shutil.rmtree(path)
 
 
-def generate_demo_files(python_executable: str | None = None) -> None:
-    """Generate mock artefacts into ``generated``."""
-    python = python_executable or sys.executable
+def generate_demo_files() -> None:
+    """Generate parser and mock runtime artefacts into ``generated``."""
     _clean_generated_dir()
+    spec = load_protocol(str(SPEC_PATH))
 
     steps = [
         (
-            "mock client",
-            [
-                python,
-                "-m",
-                "protocollab",
-                "generate",
-                "mock-client",
-                str(SPEC_PATH),
-                "-o",
-                str(GENERATED_DIR),
-            ],
+            "Python parser",
+            lambda: generate(spec, target="python", output_dir=GENERATED_DIR),
         ),
+        ("mock client", lambda: MockClientGenerator().generate(spec, GENERATED_DIR)),
         (
             "mock server",
-            [
-                python,
-                "-m",
-                "protocollab",
-                "generate",
-                "mock-server",
-                str(SPEC_PATH),
-                "-o",
-                str(GENERATED_DIR),
-            ],
+            lambda: MockServerGenerator().generate(spec, GENERATED_DIR),
         ),
     ]
 
-    for label, command in steps:
+    for label, step in steps:
         print(f"Generating {label}...")
-        subprocess.run(command, check=True, cwd=PROJECT_ROOT)
+        step()
 
     print(f"Generation completed. Files in {GENERATED_DIR}:")
-    for path in sorted(GENERATED_DIR.glob("ping*.py")):
+    for path in sorted(GENERATED_DIR.iterdir()):
         print(path)
 
 
@@ -92,8 +82,8 @@ def _make_ping_handler(ping_protocol):
     return ping_handler
 
 
-def run_demo() -> None:
-    """Run the generated mock demo."""
+def run_demo() -> Any:
+    """Run the generated mock demo and return the parsed response."""
     ping_protocol, mock_client, mock_server = _load_generated_types()
 
     client_to_server = queue.Queue()
@@ -115,14 +105,17 @@ def run_demo() -> None:
     ping = ping_protocol(type_id=0, sequence_number=42, payload_size=8)
     print(f"Sending ping: {ping}")
 
-    response = client.send_and_receive(ping, timeout=2.0)
-    if response:
-        print(f"Received pong: {response}")
-    else:
-        print("Timeout - no response")
+    try:
+        response = client.send_and_receive(ping, timeout=2.0)
+        if response:
+            print(f"Received pong: {response}")
+            return response
 
-    server.stop()
-    print("Server stopped.")
+        print("Timeout - no response")
+        return None
+    finally:
+        server.stop()
+        print("Server stopped.")
 
 
 def run_demo_tests(pytest_args: Sequence[str] | None = None) -> None:

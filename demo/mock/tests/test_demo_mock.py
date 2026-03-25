@@ -4,6 +4,7 @@ import queue
 import sys
 from pathlib import Path
 from typing import Generator
+from unittest.mock import patch
 
 import pytest
 
@@ -67,6 +68,11 @@ def setup_module(module):
         _generate_demo_files()
 
 
+def test_generated_files_exist():
+    for path in EXPECTED_GENERATED_FILES:
+        assert path.exists()
+
+
 def test_imports():
     """Проверяем, что все сгенерированные модули импортируются."""
     from ping_protocol_parser import PingProtocol
@@ -88,6 +94,16 @@ def test_ping_protocol_serialize_deserialize():
     assert parsed.type_id == original.type_id
     assert parsed.sequence_number == original.sequence_number
     assert parsed.payload_size == original.payload_size
+
+
+def test_demo_round_trip():
+    demo_cli = _load_demo_cli_module()
+    response = demo_cli.run_demo()
+
+    assert response is not None
+    assert response.type_id == 1
+    assert response.sequence_number == 42
+    assert response.payload_size == 8
 
 
 def test_mock_client_server_interaction():
@@ -161,3 +177,32 @@ def test_mock_server_default_handler():
         assert response.payload_size == 8
     finally:
         server.stop(timeout=2.0)
+
+
+def test_generate_demo_files_generates_parser_once():
+    demo_cli = _load_demo_cli_module()
+
+    with patch.object(
+        demo_cli, "load_protocol", wraps=demo_cli.load_protocol
+    ) as load_protocol_mock:
+        with patch.object(demo_cli, "generate", wraps=demo_cli.generate) as generate_mock:
+            with patch.object(
+                demo_cli.MockClientGenerator,
+                "generate",
+                autospec=True,
+                wraps=demo_cli.MockClientGenerator.generate,
+            ) as client_generate_mock:
+                with patch.object(
+                    demo_cli.MockServerGenerator,
+                    "generate",
+                    autospec=True,
+                    wraps=demo_cli.MockServerGenerator.generate,
+                ) as server_generate_mock:
+                    demo_cli.generate_demo_files()
+
+    assert load_protocol_mock.call_count == 1
+    assert [call.kwargs["target"] for call in generate_mock.call_args_list] == [
+        "python",
+    ]
+    assert client_generate_mock.call_count == 1
+    assert server_generate_mock.call_count == 1
