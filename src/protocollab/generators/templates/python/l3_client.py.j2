@@ -32,12 +32,15 @@ class L3SocketClient:
         with socket.create_connection((self.host, self.port), timeout=self.timeout) as sock:
             sock.settimeout(self.timeout)
             sock.sendall(msg.serialize())
+            # Drain the mandatory server response so the request/response
+            # exchange completes cleanly before closing the socket.
+            self._recv_exact(sock, _ProtocolClass._SIZE)
 
     def receive(self) -> _ProtocolClass:
-        with socket.create_connection((self.host, self.port), timeout=self.timeout) as sock:
-            sock.settimeout(self.timeout)
-            data = self._recv_exact(sock, _ProtocolClass._SIZE)
-        return _ProtocolClass.parse(data)
+        raise NotImplementedError(
+            "L3SocketClient only supports request/response exchanges. "
+            "Use send_and_receive() to get a response for a request."
+        )
 
     def send_and_receive(self, msg: _ProtocolClass) -> _ProtocolClass:
         with socket.create_connection((self.host, self.port), timeout=self.timeout) as sock:

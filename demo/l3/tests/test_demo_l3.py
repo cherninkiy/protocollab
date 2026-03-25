@@ -3,6 +3,7 @@ import importlib.util
 import sys
 from pathlib import Path
 from typing import Generator
+from unittest.mock import patch
 
 import pytest
 
@@ -108,3 +109,33 @@ def test_generated_lua_contains_protocol_name():
 
     assert 'Proto("ping_protocol"' in source
     assert "dissector" in source
+
+
+def test_generate_demo_files_generates_parser_once():
+    demo_cli = _load_demo_cli_module()
+
+    with patch.object(
+        demo_cli, "load_protocol", wraps=demo_cli.load_protocol
+    ) as load_protocol_mock:
+        with patch.object(demo_cli, "generate", wraps=demo_cli.generate) as generate_mock:
+            with patch.object(
+                demo_cli.L3ClientGenerator,
+                "generate",
+                autospec=True,
+                wraps=demo_cli.L3ClientGenerator.generate,
+            ) as client_generate_mock:
+                with patch.object(
+                    demo_cli.L3ServerGenerator,
+                    "generate",
+                    autospec=True,
+                    wraps=demo_cli.L3ServerGenerator.generate,
+                ) as server_generate_mock:
+                    demo_cli.generate_demo_files()
+
+    assert load_protocol_mock.call_count == 1
+    assert [call.kwargs["target"] for call in generate_mock.call_args_list] == [
+        "python",
+        "wireshark",
+    ]
+    assert client_generate_mock.call_count == 1
+    assert server_generate_mock.call_count == 1

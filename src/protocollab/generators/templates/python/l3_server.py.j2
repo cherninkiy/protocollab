@@ -77,10 +77,10 @@ class L3SocketServer:
                 conn, _ = self._server_socket.accept()
             except socket.timeout:
                 continue
-            except OSError:
+            except OSError as exc:
                 if self._stop_event.is_set():
                     break
-                self.last_error = OSError("Server socket closed unexpectedly")
+                self.last_error = exc
                 break
 
             with conn:

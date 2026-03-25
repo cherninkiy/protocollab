@@ -9,6 +9,9 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from protocollab.generators import L3ClientGenerator, L3ServerGenerator, generate
+from protocollab.loader import load_protocol
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DEMO_L3_DIR = Path(__file__).resolve().parent
 GENERATED_DIR = DEMO_L3_DIR / "generated"
@@ -37,54 +40,25 @@ def _clean_generated_dir() -> None:
 
 def generate_demo_files(python_executable: str | None = None) -> None:
     """Generate parser, L3 socket runtime, and Wireshark artefacts."""
-    python = python_executable or sys.executable
     _clean_generated_dir()
+    spec = load_protocol(str(SPEC_PATH))
 
     steps = [
         (
-            "L3 client",
-            [
-                python,
-                "-m",
-                "protocollab",
-                "generate",
-                "l3-client",
-                str(SPEC_PATH),
-                "-o",
-                str(GENERATED_DIR),
-            ],
+            "Python parser",
+            lambda: generate(spec, target="python", output_dir=GENERATED_DIR),
         ),
-        (
-            "L3 server",
-            [
-                python,
-                "-m",
-                "protocollab",
-                "generate",
-                "l3-server",
-                str(SPEC_PATH),
-                "-o",
-                str(GENERATED_DIR),
-            ],
-        ),
+        ("L3 client", lambda: L3ClientGenerator().generate(spec, GENERATED_DIR)),
+        ("L3 server", lambda: L3ServerGenerator().generate(spec, GENERATED_DIR)),
         (
             "wireshark dissector",
-            [
-                python,
-                "-m",
-                "protocollab",
-                "generate",
-                "wireshark",
-                str(SPEC_PATH),
-                "-o",
-                str(GENERATED_DIR),
-            ],
+            lambda: generate(spec, target="wireshark", output_dir=GENERATED_DIR),
         ),
     ]
 
-    for label, command in steps:
+    for label, step in steps:
         print(f"Generating {label}...")
-        subprocess.run(command, check=True, cwd=PROJECT_ROOT)
+        step()
 
     print(f"Generation completed. Files in {GENERATED_DIR}:")
     for path in sorted(GENERATED_DIR.iterdir()):
