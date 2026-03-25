@@ -1,12 +1,36 @@
 import importlib
-import sys
 import queue
+import sys
 from pathlib import Path
+from typing import Generator
+
+import pytest
 
 DEMO_MOCK_DIR = Path(__file__).resolve().parent.parent
 GENERATED_DIR = DEMO_MOCK_DIR / "generated"
-sys.path.insert(0, str(DEMO_MOCK_DIR))
-sys.path.insert(0, str(GENERATED_DIR))
+GENERATED_MODULE_NAMES = (
+    "demo",
+    "ping_protocol_parser",
+    "ping_protocol_mock_client",
+    "ping_protocol_mock_server",
+)
+
+
+def _clear_generated_modules() -> None:
+    for module_name in GENERATED_MODULE_NAMES:
+        sys.modules.pop(module_name, None)
+    importlib.invalidate_caches()
+
+
+@pytest.fixture(autouse=True)
+def prepare_demo_imports(
+    monkeypatch: pytest.MonkeyPatch,
+) -> Generator[None, None, None]:
+    monkeypatch.syspath_prepend(str(DEMO_MOCK_DIR))
+    monkeypatch.syspath_prepend(str(GENERATED_DIR))
+    _clear_generated_modules()
+    yield
+    _clear_generated_modules()
 
 
 def _generate_demo_files() -> None:
