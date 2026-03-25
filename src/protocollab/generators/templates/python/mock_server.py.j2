@@ -34,7 +34,12 @@ class MockServer:
     def stop(self, timeout: Optional[float] = None) -> None:
         """Signal the server to stop and wait for the worker thread."""
         self._stop_event.set()
-        self.recv_queue.put(_STOP_SENTINEL)
+        try:
+            self.recv_queue.put_nowait(_STOP_SENTINEL)
+        except queue.Full:
+            LOGGER.warning(
+                "MockServer recv_queue is full; worker will stop after the queue timeout"
+            )
         self._thread.join(timeout=timeout)
 
     def is_alive(self) -> bool:

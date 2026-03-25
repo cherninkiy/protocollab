@@ -7,6 +7,15 @@ This folder contains a small end-to-end demo for the generated mock client and m
 Generated files are written to `demo/mock/generated` and are intentionally not stored in the repository.
 Only `demo/mock/generated/.gitkeep` is tracked.
 
+### Prerequisites
+
+- Use a Python virtual environment for the repository
+- Install the project in editable mode so `python -m protocollab` works:
+
+```bash
+pip install -e .
+```
+
 ### Commands
 
 - Generate artefacts:
@@ -59,6 +68,15 @@ The `check` command performs three steps in order:
 
 Сгенерированные файлы записываются в `demo/mock/generated` и намеренно не хранятся в репозитории.
 В git отслеживается только `demo/mock/generated/.gitkeep`.
+
+### Предварительные условия
+
+- Используйте Python virtual environment в корне репозитория
+- Установите проект в editable-режиме, чтобы работал `python -m protocollab`:
+
+```bash
+pip install -e .
+```
 
 ### Команды
 

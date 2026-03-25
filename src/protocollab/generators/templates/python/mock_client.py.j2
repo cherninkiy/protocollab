@@ -6,7 +6,7 @@ from {{ parser_module_name }} import {{ protocol_class_name }}
 
 
 class MockClient:
-    """Mock client that communicates via an internal queue (no real network)."""
+    """Mock client that communicates via caller-provided queues."""
 
     def __init__(self, send_queue: queue.Queue, recv_queue: queue.Queue):
         self.send_queue = send_queue

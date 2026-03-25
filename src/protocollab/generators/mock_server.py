@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 from jinja2 import Environment, FileSystemLoader
 
 from protocollab.generators.base_generator import BaseGenerator
-from protocollab.generators.python_generator import _to_class_name
+from protocollab.generators.utils import to_class_name
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates" / "python"
 
@@ -29,15 +29,10 @@ class MockServerGenerator(BaseGenerator):
         -------
         List[Path]
             Paths of the generated file(s).
-
-        Raises
-        ------
-        GeneratorError
-            If the spec is missing required fields.
         """
         meta = spec.get("meta") or {}
         proto_id = meta.get("id", "protocol")
-        class_name = _to_class_name(proto_id)
+        class_name = to_class_name(proto_id)
 
         # Prepare output file name
         output_file = output_dir / f"{proto_id}_mock_server.py"
