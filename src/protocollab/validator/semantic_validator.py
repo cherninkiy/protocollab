@@ -42,7 +42,6 @@ class SemanticValidator(BaseValidator):
     * All ``seq`` field types resolve via :class:`~protocollab.type_system.TypeRegistry`.
     * All ``types:`` sub-field types resolve.
     * No duplicate ``id`` values within the same ``seq`` level.
-    * If ``meta.endian`` is not explicitly set, emit a warning.
     """
 
     def validate(self, spec: "ProtocolSpec") -> List[ValidationIssue]:
