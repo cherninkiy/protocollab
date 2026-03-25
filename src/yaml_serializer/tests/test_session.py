@@ -531,6 +531,29 @@ class TestRenameToDirectory:
         assert os.path.exists(new_path)
         assert not os.path.exists(old_path)
 
+    def test_rename_to_different_directory_rewrites_root_include_on_save(self, temp_dir):
+        """Renamed root is rewritten so its relative !include paths stay valid."""
+        sub1 = os.path.join(temp_dir, "sub1")
+        sub2 = os.path.join(temp_dir, "sub2")
+        os.makedirs(sub1)
+        os.makedirs(sub2)
+
+        child_path = os.path.join(sub1, "child.yaml")
+        old_path = os.path.join(sub1, "data.yaml")
+        new_path = os.path.join(sub2, "data.yaml")
+        write(child_path, "key: value\n")
+        write(old_path, "child: !include child.yaml\n")
+
+        s = SerializerSession()
+        s.load(old_path)
+
+        s.rename(old_path, new_path)
+        s.save(only_if_changed=True)
+
+        saved_content = Path(new_path).read_text(encoding="utf-8")
+
+        assert "!include ../sub1/child.yaml" in saved_content.replace("\\", "/")
+
 
 # ---------------------------------------------------------------------------
 # Thread-safety

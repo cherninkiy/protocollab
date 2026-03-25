@@ -40,12 +40,9 @@ def create_yaml_instance(session, register_include_representer=False, max_depth=
     )
     yaml._session = session  # attach session for constructor/representer access
     if register_include_representer:
-
-        def _representer(dumper, data):
-            return _make_include_representer(session)(dumper, data)
-
-        yaml.representer.add_representer(CommentedMap, _representer)
-        yaml.representer.add_representer(CommentedSeq, _representer)
+        include_representer = _make_include_representer(session)
+        yaml.representer.add_representer(CommentedMap, include_representer)
+        yaml.representer.add_representer(CommentedSeq, include_representer)
     return yaml
 
 
@@ -312,6 +309,8 @@ class SerializerSession:
         logger.debug("Updated session structures: _file_roots and _loaded_hashes")
         update_file_attr(root, old_abs, new_abs)
         update_parent_file_attr(root, old_abs, new_abs)
+        mark_dirty(root)
+        logger.debug("Marked renamed root of file %s as dirty", new_abs)
         logger.debug("Updated _yaml_file attributes for root and descendants")
         logger.debug("Updating !include references in other loaded files")
         for fpath, froot in self._file_roots.items():
