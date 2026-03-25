@@ -126,6 +126,55 @@ def test_l3_client_server_round_trip(ping_spec, tmp_path, monkeypatch):
         server.stop(timeout=2.0)
 
 
+def test_l3_client_send_drains_response(ping_spec, tmp_path, monkeypatch):
+    PythonGenerator().generate(ping_spec, tmp_path)
+    generate_l3_files(ping_spec, tmp_path, L3ClientGenerator)
+    generate_l3_files(ping_spec, tmp_path, L3ServerGenerator)
+
+    ping_protocol = _import_generated_module(
+        tmp_path, "ping_protocol_parser", monkeypatch
+    ).PingProtocol
+    l3_client = _import_generated_module(
+        tmp_path, "ping_protocol_l3_client", monkeypatch
+    ).L3SocketClient
+    l3_server = _import_generated_module(
+        tmp_path, "ping_protocol_l3_server", monkeypatch
+    ).L3SocketServer
+
+    def ping_handler(request):
+        return ping_protocol(
+            type_id=1,
+            sequence_number=request.sequence_number,
+            payload_size=request.payload_size,
+        )
+
+    server = l3_server("127.0.0.1", 0, handler=ping_handler, timeout=2.0)
+    server.start()
+
+    try:
+        client = l3_client(*server.address, timeout=2.0)
+        ping = ping_protocol(type_id=0, sequence_number=11, payload_size=8)
+
+        client.send(ping)
+
+        assert server.last_error is None
+    finally:
+        server.stop(timeout=2.0)
+
+
+def test_l3_client_receive_is_not_supported(ping_spec, tmp_path, monkeypatch):
+    PythonGenerator().generate(ping_spec, tmp_path)
+    generate_l3_files(ping_spec, tmp_path, L3ClientGenerator)
+
+    l3_client = _import_generated_module(
+        tmp_path, "ping_protocol_l3_client", monkeypatch
+    ).L3SocketClient
+    client = l3_client("127.0.0.1", 0, timeout=0.5)
+
+    with pytest.raises(NotImplementedError, match="send_and_receive"):
+        client.receive()
+
+
 def test_l3_server_records_handler_exception(ping_spec, tmp_path, monkeypatch):
     PythonGenerator().generate(ping_spec, tmp_path)
     generate_l3_files(ping_spec, tmp_path, L3ClientGenerator)
@@ -161,3 +210,24 @@ def test_l3_server_records_handler_exception(ping_spec, tmp_path, monkeypatch):
         assert isinstance(server.last_error, ValueError)
     finally:
         server.stop(timeout=2.0)
+
+
+def test_l3_server_preserves_accept_oserror_context(ping_spec, tmp_path, monkeypatch):
+    PythonGenerator().generate(ping_spec, tmp_path)
+    generate_l3_files(ping_spec, tmp_path, L3ServerGenerator)
+
+    l3_server = _import_generated_module(
+        tmp_path, "ping_protocol_l3_server", monkeypatch
+    ).L3SocketServer
+    server = l3_server("127.0.0.1", 0, timeout=0.5)
+
+    original_error = OSError("accept failed")
+
+    class FailingSocket:
+        def accept(self):
+            raise original_error
+
+    server._server_socket = FailingSocket()
+    server._run()
+
+    assert server.last_error is original_error
