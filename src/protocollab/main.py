@@ -279,6 +279,22 @@ def generate_mock_server(file: str, output: str) -> None:
     _run_generate(file, target="mock-server", output=output)
 
 
+@generate_cmd.command("l2-client")
+@click.argument("file", type=click.Path())
+@click.option("--output", "-o", type=click.Path(), default="./build", show_default=True)
+def generate_l2_client(file: str, output: str) -> None:
+    """Generate a Scapy L2 client and its Python parser."""
+    _run_generate(file, target="l2-client", output=output)
+
+
+@generate_cmd.command("l2-server")
+@click.argument("file", type=click.Path())
+@click.option("--output", "-o", type=click.Path(), default="./build", show_default=True)
+def generate_l2_server(file: str, output: str) -> None:
+    """Generate a Scapy L2 server and its Python parser."""
+    _run_generate(file, target="l2-server", output=output)
+
+
 @generate_cmd.command("l3-client")
 @click.argument("file", type=click.Path())
 @click.option("--output", "-o", type=click.Path(), default="./build", show_default=True)

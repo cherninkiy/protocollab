@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from protocollab.generators.base_generator import BaseGenerator, GeneratorError
+from protocollab.generators.l2_client import L2ClientGenerator
+from protocollab.generators.l2_server import L2ServerGenerator
 from protocollab.generators.python_generator import PythonGenerator
 from protocollab.generators.lua_generator import LuaGenerator
 from protocollab.generators.l3_client import L3ClientGenerator
@@ -15,6 +17,8 @@ __all__ = [
     "generate",
     "PythonGenerator",
     "LuaGenerator",
+    "L2ClientGenerator",
+    "L2ServerGenerator",
     "L3ClientGenerator",
     "L3ServerGenerator",
     "MockClientGenerator",
@@ -26,6 +30,8 @@ __all__ = [
 _GENERATORS: Dict[str, type] = {
     "python": PythonGenerator,
     "wireshark": LuaGenerator,
+    "l2-client": L2ClientGenerator,
+    "l2-server": L2ServerGenerator,
     "l3-client": L3ClientGenerator,
     "l3-server": L3ServerGenerator,
     "mock-client": MockClientGenerator,
@@ -54,10 +60,12 @@ def generate(
     spec:
         Protocol specification dict (as returned by ``load_protocol``).
     target:
-        One of ``"python"``, ``"wireshark"``, ``"l3-client"``, ``"l3-server"``,
-        ``"mock-client"``, ``"mock-server"``, or any additionally registered target.
-        The ``"l3-client"``, ``"l3-server"``, ``"mock-client"`` and
-        ``"mock-server"`` targets first generate
+        One of ``"python"``, ``"wireshark"``, ``"l2-client"``, ``"l2-server"``,
+        ``"l3-client"``, ``"l3-server"``, ``"mock-client"``, ``"mock-server"``,
+        or any additionally registered target.
+        The ``"l2-client"``, ``"l2-server"``, ``"l3-client"``,
+        ``"l3-server"``, ``"mock-client"`` and ``"mock-server"``
+        targets first generate
         the ``"python"`` parser module into the same output directory and
         then generate the runtime module that imports it. If the parser file
         already exists in *output_dir*, it is overwritten with regenerated
@@ -68,8 +76,8 @@ def generate(
     Returns
     -------
     List[Path]
-        Paths of every file that was written. For ``"l3-client"``,
-        ``"l3-server"``, ``"mock-client"`` and ``"mock-server"`` this
+        Paths of every file that was written. For ``"l2-client"``, ``"l2-server"``,
+        ``"l3-client"``, ``"l3-server"``, ``"mock-client"`` and ``"mock-server"`` this
         includes both the generated parser path and the generated runtime
         module path.
 
@@ -86,7 +94,14 @@ def generate(
         )
 
     output_path = Path(output_dir)
-    if target in {"l3-client", "l3-server", "mock-client", "mock-server"}:
+    if target in {
+        "l2-client",
+        "l2-server",
+        "l3-client",
+        "l3-server",
+        "mock-client",
+        "mock-server",
+    }:
         parser_paths = PythonGenerator().generate(spec, output_path)
         generator: BaseGenerator = _GENERATORS[target]()
         return parser_paths + generator.generate(spec, output_path)
