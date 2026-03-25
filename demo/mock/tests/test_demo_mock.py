@@ -53,7 +53,7 @@ def _generate_demo_files() -> None:
     demo_cli.generate_demo_files()
 
 
-def setup_module():
+def setup_module(module):
     _generate_demo_files()
 
 

@@ -191,8 +191,8 @@ def generate_cmd() -> None:
 cli.add_command(generate_cmd, name="generate")
 
 
-def _run_generate(file: str, target: str, output: str) -> None:
-    """Shared implementation for generate sub-commands."""
+def _load_generate_spec(file: str):
+    """Load and return a protocol specification for generation commands."""
     try:
         check_file_exists(file)
     except FileNotFoundError as exc:
@@ -202,7 +202,7 @@ def _run_generate(file: str, target: str, output: str) -> None:
     try:
         from protocollab.loader import load_protocol
 
-        spec = load_protocol(file)
+        return load_protocol(file)
     except FileLoadError as exc:
         click.echo(f"Error: {exc}", err=True)
         sys.exit(1)
@@ -210,14 +210,25 @@ def _run_generate(file: str, target: str, output: str) -> None:
         click.echo(f"YAML error: {exc}", err=True)
         sys.exit(2)
 
+
+def _generate_targets(spec, targets: tuple[str, ...], output: str) -> None:
+    """Generate one or more targets from a loaded protocol specification."""
     try:
-        paths = generate(spec, target=target, output_dir=output)
+        paths = []
+        for target in targets:
+            paths.extend(generate(spec, target=target, output_dir=output))
     except GeneratorError as exc:
         click.echo(f"Generation error: {exc}", err=True)
         sys.exit(4)
 
     for p in paths:
         click.echo(f"Generated: {p}")
+
+
+def _run_generate(file: str, target: str, output: str) -> None:
+    """Shared implementation for single-target generate sub-commands."""
+    spec = _load_generate_spec(file)
+    _generate_targets(spec, (target,), output)
 
 
 @generate_cmd.command(name="python")
@@ -257,16 +268,18 @@ def generate_cpp(file: str, output: str) -> None:
 @click.argument("file", type=click.Path())
 @click.option("--output", "-o", type=click.Path(), default="./build", show_default=True)
 def generate_mock_client(file: str, output: str) -> None:
-    """Generate a mock client that communicates via queues."""
-    _run_generate(file, target="mock-client", output=output)
+    """Generate a mock client and its Python parser."""
+    spec = _load_generate_spec(file)
+    _generate_targets(spec, ("python", "mock-client"), output)
 
 
 @generate_cmd.command("mock-server")
 @click.argument("file", type=click.Path())
 @click.option("--output", "-o", type=click.Path(), default="./build", show_default=True)
 def generate_mock_server(file: str, output: str) -> None:
-    """Generate a mock server that communicates via queues."""
-    _run_generate(file, target="mock-server", output=output)
+    """Generate a mock server and its Python parser."""
+    spec = _load_generate_spec(file)
+    _generate_targets(spec, ("python", "mock-server"), output)
 
 
 # ---------------------------------------------------------------------------
