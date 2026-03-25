@@ -2,8 +2,8 @@
 
 import sys
 import queue
-import time
 import importlib
+import threading
 from pathlib import Path
 
 import pytest
@@ -101,17 +101,18 @@ def test_mock_client_server_interaction(ping_spec, tmp_path):
         server = mock_server(client_to_server, server_to_client, handler=ping_handler)
         server.start()
 
-        client = mock_client(client_to_server, server_to_client)
+        try:
+            client = mock_client(client_to_server, server_to_client)
 
-        ping = ping_protocol(type_id=0, sequence_number=123, payload_size=16)
-        response = client.send_and_receive(ping, timeout=2.0)
+            ping = ping_protocol(type_id=0, sequence_number=123, payload_size=16)
+            response = client.send_and_receive(ping, timeout=2.0)
 
-        assert response is not None
-        assert response.type_id == 1
-        assert response.sequence_number == 123
-        assert response.payload_size == 16
-
-        server.stop()
+            assert response is not None
+            assert response.type_id == 1
+            assert response.sequence_number == 123
+            assert response.payload_size == 16
+        finally:
+            server.stop(timeout=2.0)
     finally:
         sys.path.pop(0)
 
@@ -165,14 +166,17 @@ def test_mock_server_custom_handler(ping_spec, tmp_path):
         server = mock_server(client_to_server, server_to_client, handler=custom_handler)
         server.start()
 
-        client = mock_client(client_to_server, server_to_client)
+        try:
+            client = mock_client(client_to_server, server_to_client)
 
-        ping = ping_protocol(type_id=0, sequence_number=100, payload_size=8)
-        response = client.send_and_receive(ping, timeout=2.0)
+            ping = ping_protocol(type_id=0, sequence_number=100, payload_size=8)
+            response = client.send_and_receive(ping, timeout=2.0)
 
-        assert response is not None
-        assert response.sequence_number == 101
-        assert response.type_id == 0  # unchanged
+            assert response is not None
+            assert response.sequence_number == 101
+            assert response.type_id == 0  # unchanged
+        finally:
+            server.stop(timeout=2.0)
     finally:
         sys.path.pop(0)
 
@@ -195,15 +199,18 @@ def test_mock_server_default_handler(ping_spec, tmp_path):
         server = mock_server(client_to_server, server_to_client)
         server.start()
 
-        client = mock_client(client_to_server, server_to_client)
+        try:
+            client = mock_client(client_to_server, server_to_client)
 
-        ping = ping_protocol(type_id=0, sequence_number=42, payload_size=8)
-        response = client.send_and_receive(ping, timeout=2.0)
+            ping = ping_protocol(type_id=0, sequence_number=42, payload_size=8)
+            response = client.send_and_receive(ping, timeout=2.0)
 
-        assert response is not None
-        assert response.type_id == 0
-        assert response.sequence_number == 42
-        assert response.payload_size == 8
+            assert response is not None
+            assert response.type_id == 0
+            assert response.sequence_number == 42
+            assert response.payload_size == 8
+        finally:
+            server.stop(timeout=2.0)
     finally:
         sys.path.pop(0)
 
@@ -221,7 +228,10 @@ def test_mock_server_handles_exceptions(ping_spec, tmp_path):
         mock_client = importlib.import_module("ping_protocol_mock_client").MockClient
         mock_server = importlib.import_module("ping_protocol_mock_server").MockServer
 
+        handled = threading.Event()
+
         def error_handler(msg):
+            handled.set()
             raise ValueError("Test exception")
 
         client_to_server = queue.Queue()
@@ -229,20 +239,16 @@ def test_mock_server_handles_exceptions(ping_spec, tmp_path):
         server = mock_server(client_to_server, server_to_client, handler=error_handler)
         server.start()
 
-        client = mock_client(client_to_server, server_to_client)
+        try:
+            client = mock_client(client_to_server, server_to_client)
 
-        ping = ping_protocol(type_id=0, sequence_number=99, payload_size=8)
-        client.send(ping)
+            ping = ping_protocol(type_id=0, sequence_number=99, payload_size=8)
+            client.send(ping)
 
-        # Give server time to process
-        time.sleep(0.5)
-
-        # Server thread should still be alive
-        assert server._thread.is_alive()
-
-        # Send another message to ensure server didn't crash
-        client.send(ping)
-        time.sleep(0.5)
-        # No response expected, just no exception
+            assert handled.wait(timeout=2.0)
+            assert server.is_alive()
+            assert isinstance(server.last_error, ValueError)
+        finally:
+            server.stop(timeout=2.0)
     finally:
         sys.path.pop(0)
