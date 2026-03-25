@@ -18,6 +18,7 @@ DEMO_MOCK_DIR = Path(__file__).resolve().parent
 GENERATED_DIR = DEMO_MOCK_DIR / "generated"
 SPEC_PATH = PROJECT_ROOT / "examples" / "simple" / "ping_protocol.yaml"
 TESTS_DIR = DEMO_MOCK_DIR / "tests"
+STOP_TIMEOUT = 2.0
 
 
 def _ensure_generated_dir_on_path() -> None:
@@ -106,7 +107,7 @@ def run_demo() -> Any:
     print(f"Sending ping: {ping}")
 
     try:
-        response = client.send_and_receive(ping, timeout=2.0)
+        response = client.send_and_receive(ping, timeout=STOP_TIMEOUT)
         if response:
             print(f"Received pong: {response}")
             return response
@@ -114,8 +115,11 @@ def run_demo() -> Any:
         print("Timeout - no response")
         return None
     finally:
-        server.stop()
-        print("Server stopped.")
+        server.stop(timeout=STOP_TIMEOUT)
+        if hasattr(server, "is_alive") and server.is_alive():
+            print("Warning: server thread is still alive after stop timeout.")
+        else:
+            print("Server stopped.")
 
 
 def run_demo_tests(pytest_args: Sequence[str] | None = None) -> None:

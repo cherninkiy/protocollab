@@ -106,6 +106,71 @@ def test_demo_round_trip():
     assert response.payload_size == 8
 
 
+def test_demo_stop_uses_bounded_timeout_and_warns_if_server_is_still_alive(monkeypatch):
+    demo_cli = _load_demo_cli_module()
+
+    class FakePingProtocol:
+        def __init__(self, type_id, sequence_number, payload_size):
+            self.type_id = type_id
+            self.sequence_number = sequence_number
+            self.payload_size = payload_size
+
+        def __repr__(self):
+            return (
+                "PingProtocol("
+                f"type_id={self.type_id}, "
+                f"sequence_number={self.sequence_number}, "
+                f"payload_size={self.payload_size}"
+                ")"
+            )
+
+    class FakeClient:
+        def __init__(self, send_queue, recv_queue):
+            self.send_queue = send_queue
+            self.recv_queue = recv_queue
+
+        def send_and_receive(self, msg, timeout):
+            assert timeout == demo_cli.STOP_TIMEOUT
+            return FakePingProtocol(1, msg.sequence_number, msg.payload_size)
+
+    class FakeServer:
+        def __init__(self, recv_queue, send_queue, handler):
+            self.recv_queue = recv_queue
+            self.send_queue = send_queue
+            self.handler = handler
+            self.stop_timeout = None
+
+        def start(self):
+            return None
+
+        def stop(self, timeout=None):
+            self.stop_timeout = timeout
+
+        def is_alive(self):
+            return True
+
+    fake_server = FakeServer(None, None, None)
+
+    def fake_server_factory(recv_queue, send_queue, handler):
+        fake_server.recv_queue = recv_queue
+        fake_server.send_queue = send_queue
+        fake_server.handler = handler
+        return fake_server
+
+    monkeypatch.setattr(
+        demo_cli,
+        "_load_generated_types",
+        lambda: (FakePingProtocol, FakeClient, fake_server_factory),
+    )
+
+    with patch("builtins.print") as print_mock:
+        response = demo_cli.run_demo()
+
+    assert response is not None
+    assert fake_server.stop_timeout == demo_cli.STOP_TIMEOUT
+    print_mock.assert_any_call("Warning: server thread is still alive after stop timeout.")
+
+
 def test_mock_client_server_interaction():
     from ping_protocol_parser import PingProtocol
     from ping_protocol_mock_client import MockClient
