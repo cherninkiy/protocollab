@@ -16,6 +16,11 @@ GENERATED_MODULE_NAMES = (
     "ping_protocol_mock_client",
     "ping_protocol_mock_server",
 )
+EXPECTED_GENERATED_FILES = (
+    GENERATED_DIR / "ping_protocol_parser.py",
+    GENERATED_DIR / "ping_protocol_mock_client.py",
+    GENERATED_DIR / "ping_protocol_mock_server.py",
+)
 
 
 def _clear_generated_modules() -> None:
@@ -53,8 +58,13 @@ def _generate_demo_files() -> None:
     demo_cli.generate_demo_files()
 
 
+def _demo_files_missing() -> bool:
+    return any(not path.exists() for path in EXPECTED_GENERATED_FILES)
+
+
 def setup_module(module):
-    _generate_demo_files()
+    if _demo_files_missing():
+        _generate_demo_files()
 
 
 def test_imports():
