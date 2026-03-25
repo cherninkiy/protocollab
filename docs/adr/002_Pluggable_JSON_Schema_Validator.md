@@ -24,16 +24,16 @@ We will create a **standalone, reusable Python module** called `jsonschema_valid
    - `fastjsonschema` – high performance (optional, uses `exec`).
    - `jsonscreamer` – high performance, no `exec` (optional).
    - (future) Pydantic integration for model‑based validation.
-3. **Provide a factory** (`ValidatorFactory.create(backend="auto", cache=True, **options)`) that selects an available backend using the proposed default priority order `jsonscreamer` -> `jsonschema` -> `fastjsonschema`. Explicit backend selection remains available for callers that want to optimize primarily for speed or draft coverage.
+3. **Provide a factory** (`ValidatorFactory.create(backend="auto", cache=True, **options)`) that selects an available backend using the proposed default priority order `jsonscreamer` -> `jsonschema`. Because `fastjsonschema` relies on `exec`, it should not be selected by the default `auto` mode for untrusted-schema scenarios; using it should require explicit backend selection or another explicit opt-in mechanism defined during implementation.
 4. **Include caching** of compiled validators (keyed by schema hash + backend version) to avoid repeated compilation overhead.
 5. **Normalize error messages** across backends to a common internal format. The externally visible user-facing error path format should remain compatible with the current dot-notation style used by `protocollab` (for example, `meta.id` or `seq[0].type`), even if the internal normalization layer uses a different representation.
 6. **Integrate into `protocollab`** by replacing direct `jsonschema` calls with the new module and exposing a CLI option `--validator-backend` for the `validate` command.
 7. **Publish the module as part of the `protocollab` monorepo** with its own tests, documentation, and optional dependencies, but keep it completely independent (no imports from `protocollab.*`).
 
-The module is intended to be installable via proposed extras such as:
+One possible **future** packaging approach (TBD, not implemented in the current `pyproject.toml`) is installation via extras such as:
 ```bash
-pip install protocollab[validator-jsonschema]   # minimal
-pip install protocollab[validator-all]          # all backends
+pip install protocollab[validator-jsonschema]   # planned minimal extra with the base backend
+pip install protocollab[validator-all]          # planned extra with all backends
 ```
 
 ## Consequences
