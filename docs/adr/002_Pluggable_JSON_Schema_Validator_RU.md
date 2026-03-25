@@ -70,7 +70,7 @@ pip install protocollab[validator-all]          # планируемый extra �
 - [Библиотека fastjsonschema](https://github.com/horejsek/python-fastjsonschema)
 - [Библиотека jsonscreamer](https://github.com/openedx/jsonscreamer)
 - [Pydantic](https://docs.pydantic.dev/) (возможная будущая интеграция)
-- Задача `protocollab`: TBD (будет добавлена после создания issue)
+- Задача `protocollab`: [#22](https://github.com/cherninkiy/protocollab/issues/22)
 
 ## Согласование
 *Ожидает ревью*
