@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 
 from jinja2 import Environment, FileSystemLoader
 
-from protocollab.generators.base_generator import BaseGenerator, GeneratorError
+from protocollab.generators.base_generator import BaseGenerator
 from protocollab.generators.python_generator import _to_class_name
 
 _TEMPLATES_DIR = Path(__file__).parent / "templates" / "python"
