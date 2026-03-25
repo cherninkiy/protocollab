@@ -40,7 +40,8 @@ class MockServer:
             LOGGER.warning(
                 "MockServer recv_queue is full; worker will stop after the current get() timeout and any in-progress message processing"
             )
-        self._thread.join(timeout=timeout)
+        if self._thread.ident is not None:
+            self._thread.join(timeout=timeout)
 
     def is_alive(self) -> bool:
         """Return ``True`` when the worker thread is running."""

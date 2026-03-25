@@ -89,6 +89,25 @@ def test_mock_server_generation(ping_spec, tmp_path, monkeypatch):
     assert callable(getattr(mock_server, "stop", None))
 
 
+def test_mock_server_stop_before_start(ping_spec, tmp_path, monkeypatch):
+    """Test that stop() is safe to call before start()."""
+    PythonGenerator().generate(ping_spec, tmp_path)
+
+    generate_mock_files(ping_spec, tmp_path, MockServerGenerator)
+
+    mock_server = _import_generated_module(
+        tmp_path, "ping_protocol_mock_server", monkeypatch
+    ).MockServer
+
+    client_to_server = queue.Queue()
+    server_to_client = queue.Queue()
+    server = mock_server(client_to_server, server_to_client)
+
+    server.stop(timeout=0.1)
+
+    assert not server.is_alive()
+
+
 def test_mock_client_server_interaction(ping_spec, tmp_path, monkeypatch):
     """Test full interaction between generated client and server."""
     PythonGenerator().generate(ping_spec, tmp_path)
