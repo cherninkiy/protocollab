@@ -268,8 +268,7 @@ def generate_cpp(file: str, output: str) -> None:
 @click.option("--output", "-o", type=click.Path(), default="./build", show_default=True)
 def generate_mock_client(file: str, output: str) -> None:
     """Generate a mock client and its Python parser."""
-    spec = _load_generate_spec(file)
-    _generate_targets(spec, ("python", "mock-client"), output)
+    _run_generate(file, target="mock-client", output=output)
 
 
 @generate_cmd.command("mock-server")
@@ -277,8 +276,7 @@ def generate_mock_client(file: str, output: str) -> None:
 @click.option("--output", "-o", type=click.Path(), default="./build", show_default=True)
 def generate_mock_server(file: str, output: str) -> None:
     """Generate a mock server and its Python parser."""
-    spec = _load_generate_spec(file)
-    _generate_targets(spec, ("python", "mock-server"), output)
+    _run_generate(file, target="mock-server", output=output)
 
 
 # ---------------------------------------------------------------------------

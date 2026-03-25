@@ -341,6 +341,24 @@ class TestGenerateAPI:
         paths = generate(ping_spec, target="python", output_dir=str(tmp_path))
         assert paths[0].exists()
 
+    def test_generate_mock_client_returns_parser_and_mock_paths(self, ping_spec, tmp_path):
+        paths = generate(ping_spec, target="mock-client", output_dir=tmp_path)
+
+        assert len(paths) == 2
+        assert [path.name for path in paths] == [
+            "ping_protocol_parser.py",
+            "ping_protocol_mock_client.py",
+        ]
+
+    def test_generate_mock_server_returns_parser_and_mock_paths(self, ping_spec, tmp_path):
+        paths = generate(ping_spec, target="mock-server", output_dir=tmp_path)
+
+        assert len(paths) == 2
+        assert [path.name for path in paths] == [
+            "ping_protocol_parser.py",
+            "ping_protocol_mock_server.py",
+        ]
+
 
 # ---------------------------------------------------------------------------
 # CLI: protocollab generate

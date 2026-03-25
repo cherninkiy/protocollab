@@ -273,10 +273,7 @@ def test_mock_server_handles_exceptions(ping_spec, tmp_path, monkeypatch):
         tmp_path, "ping_protocol_mock_server", monkeypatch
     ).MockServer
 
-    handled = threading.Event()
-
     def error_handler(msg):
-        handled.set()
         raise ValueError("Test exception")
 
     def wait_for_last_error(timeout: float) -> Exception | None:
@@ -298,7 +295,6 @@ def test_mock_server_handles_exceptions(ping_spec, tmp_path, monkeypatch):
         ping = ping_protocol(type_id=0, sequence_number=99, payload_size=8)
         client.send(ping)
 
-        assert handled.wait(timeout=2.0)
         last_error = wait_for_last_error(timeout=2.0)
         assert server.is_alive()
         assert isinstance(last_error, ValueError)

@@ -73,5 +73,12 @@ def generate(
         raise ValueError(
             f"Unknown target '{target}'. Supported targets: {', '.join(sorted(_GENERATORS))}."
         )
+
+    output_path = Path(output_dir)
+    if target in {"mock-client", "mock-server"}:
+        parser_paths = PythonGenerator().generate(spec, output_path)
+        generator: BaseGenerator = _GENERATORS[target]()
+        return parser_paths + generator.generate(spec, output_path)
+
     gen: BaseGenerator = _GENERATORS[target]()
-    return gen.generate(spec, Path(output_dir))
+    return gen.generate(spec, output_path)
