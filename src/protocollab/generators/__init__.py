@@ -50,17 +50,20 @@ def generate(
     target:
         One of ``"python"``, ``"wireshark"``, ``"mock-client"``,
         ``"mock-server"``, or any additionally registered target.
-        The ``"mock-client"`` and ``"mock-server"`` targets generate
-        modules that import ``<proto_id>_parser`` from the same output
-        directory, so callers should generate the ``"python"`` target there
-        as well unless another compatible parser module is already present.
+        The ``"mock-client"`` and ``"mock-server"`` targets first generate
+        the ``"python"`` parser module into the same output directory and
+        then generate the mock module that imports it. If the parser file
+        already exists in *output_dir*, it is overwritten with regenerated
+        output.
     output_dir:
         Directory where generated files are written.
 
     Returns
     -------
     List[Path]
-        Paths of every file that was written.
+        Paths of every file that was written. For ``"mock-client"`` and
+        ``"mock-server"`` this includes both the generated parser path and
+        the generated mock module path.
 
     Raises
     ------
