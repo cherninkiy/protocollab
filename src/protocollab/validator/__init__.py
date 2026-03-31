@@ -72,12 +72,16 @@ def validate_protocol(
 def validate_pipeline(
     file_path: str,
     schema_path: Optional[str] = None,
+    backend: str = "auto",
 ) -> PipelineResult:
     """Run the full multi-stage validation pipeline on *file_path*.
 
+    Collects and aggregates errors from **all** validation stages in a single
+    full pass — no stage is skipped even when earlier stages find errors.
+
     Stages
     ------
-    1. Structural (JSON Schema)
+    1. Structural (JSON Schema via :class:`~jsonschema_validator.ValidatorFactory`)
     2. Semantic (type resolution, duplicate ids)
     3. Expression (``if:`` / ``repeat-expr:`` syntax)
 
@@ -87,11 +91,15 @@ def validate_pipeline(
         Path to the root protocol YAML file.
     schema_path:
         Optional path to a custom JSON Schema.
+    backend:
+        JSON Schema backend to use — ``"auto"`` (default), ``"jsonscreamer"``,
+        ``"jsonschema"``, or ``"fastjsonschema"``.
 
     Returns
     -------
     PipelineResult
         Contains ``errors``, ``warnings``, ``is_valid``, and ``file_path``.
+        All errors from every stage are aggregated into this single result.
 
     Raises
     ------
@@ -127,5 +135,5 @@ def validate_pipeline(
         ]
         return PipelineResult(errors=errors, file_path=file_path)
 
-    pipeline = ValidationPipeline(schema_path=schema_path)
+    pipeline = ValidationPipeline(schema_path=schema_path, backend=backend)
     return pipeline.run(spec, raw_data=raw_data, file_path=file_path)
