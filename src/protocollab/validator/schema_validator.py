@@ -4,8 +4,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-import jsonschema
-from jsonschema import Draft7Validator
+from jsonschema_validator import ValidatorFactory
+from jsonschema_validator.backends.base import AbstractSchemaValidator
 
 from protocollab.validator.models import ValidationError
 
@@ -13,48 +13,46 @@ _SCHEMAS_DIR = Path(__file__).parent / "schemas"
 _DEFAULT_SCHEMA_PATH = _SCHEMAS_DIR / "base.schema.json"
 
 
-def _format_path(error: jsonschema.ValidationError) -> str:
-    """Convert a jsonschema error path to dot-notation string."""
-    parts: list[str] = []
-    for segment in error.absolute_path:
-        if isinstance(segment, int):
-            if parts:
-                parts[-1] = f"{parts[-1]}[{segment}]"
-            else:
-                parts.append(f"[{segment}]")
-        else:
-            parts.append(str(segment))
-    return ".".join(parts) if parts else "(root)"
-
-
-def _format_schema_path(error: jsonschema.ValidationError) -> str:
-    return "/".join(str(s) for s in error.absolute_schema_path)
-
-
 class SchemaValidator:
     """Validates a protocol data dict against a JSON Schema.
+
+    Uses the :class:`~jsonschema_validator.ValidatorFactory` facade so that
+    the underlying JSON Schema library can be swapped via *backend* without
+    changing call sites.  All backend implementations collect **all** errors
+    in a single full validation pass before returning.
 
     Parameters
     ----------
     schema_path:
         Path to a custom JSON Schema file.  Defaults to ``base.schema.json``.
+    backend:
+        JSON Schema backend to use — ``"auto"`` (default), ``"jsonscreamer"``,
+        ``"jsonschema"``, or ``"fastjsonschema"``.  ``"auto"`` selects the
+        best available safe backend.
     """
 
-    def __init__(self, schema_path: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        schema_path: Optional[str] = None,
+        backend: str = "auto",
+    ) -> None:
         path = Path(schema_path) if schema_path else _DEFAULT_SCHEMA_PATH
         with open(path, encoding="utf-8") as fh:
             self._schema: Dict[str, Any] = json.load(fh)
-        self._validator = Draft7Validator(self._schema)
+        self._backend: AbstractSchemaValidator = ValidatorFactory.create(backend=backend)
 
     def validate(self, data: Dict[str, Any]) -> List[ValidationError]:
-        """Return a list of :class:`ValidationError` for *data* (empty = valid)."""
-        errors: List[ValidationError] = []
-        for err in sorted(self._validator.iter_errors(data), key=lambda e: list(e.absolute_path)):
-            errors.append(
-                ValidationError(
-                    path=_format_path(err),
-                    message=err.message,
-                    schema_path=_format_schema_path(err),
-                )
+        """Return a list of :class:`ValidationError` for *data* (empty = valid).
+
+        All errors from the full validation pass are collected and returned —
+        no early exit on first failure.
+        """
+        raw_errors = self._backend.validate(self._schema, data)
+        return [
+            ValidationError(
+                path=e.path,
+                message=e.message,
+                schema_path=e.schema_path,
             )
-        return errors
+            for e in raw_errors
+        ]

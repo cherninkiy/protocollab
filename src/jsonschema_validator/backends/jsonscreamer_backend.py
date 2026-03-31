@@ -16,6 +16,7 @@ constructing :class:`JsonscreamerBackend` will raise
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List
 
 from jsonschema_validator.backends.base import AbstractSchemaValidator
@@ -34,6 +35,23 @@ def _format_path(path: list) -> str:
         else:
             parts.append(str(segment))
     return ".".join(parts) if parts else "(root)"
+
+
+def _create_jsonscreamer_validator(jsonscreamer_module: Any, schema: Dict[str, Any]) -> Any:
+    """Construct a ``jsonscreamer.Validator``, suppressing its format-warning noise.
+
+    ``jsonscreamer`` emits ``logging.warning()`` for JSON Schema format keywords
+    it does not support (e.g. ``uri``, ``uri-reference``).  These warnings are
+    harmless for protocollab schemas but interact badly with Click's test-runner
+    stream capture.  They are suppressed here by temporarily raising the root
+    logger's disabled level during construction.
+    """
+    prev_disable = logging.root.manager.disable
+    logging.disable(logging.WARNING)
+    try:
+        return jsonscreamer_module.Validator(schema)
+    finally:
+        logging.disable(prev_disable)
 
 
 class JsonscreamerBackend(AbstractSchemaValidator):
@@ -80,15 +98,15 @@ class JsonscreamerBackend(AbstractSchemaValidator):
                 SchemaValidationError(
                     path=_format_path(list(err.absolute_path)),
                     message=err.message,
-                    schema_path="",
+                    schema_path=getattr(err, "validator", "") or "",
                 )
             )
         return errors
 
     def _get_validator(self, schema: Dict[str, Any]) -> Any:
         if not self._cache_enabled:
-            return self._jsonscreamer.Validator(schema)
+            return _create_jsonscreamer_validator(self._jsonscreamer, schema)
         key = id(schema)
         if key not in self._cache:
-            self._cache[key] = self._jsonscreamer.Validator(schema)
+            self._cache[key] = _create_jsonscreamer_validator(self._jsonscreamer, schema)
         return self._cache[key]
