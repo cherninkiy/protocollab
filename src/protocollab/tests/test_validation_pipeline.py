@@ -445,9 +445,7 @@ class TestExpressionValidatorCoverage:
         """Cover expression_validator.py lines 34-36: invalid repeat_expr appends issue."""
         data = {
             "meta": {"id": "p", "endian": "le"},
-            "seq": [
-                {"id": "x", "type": "u1", "repeat": "expr", "repeat_expr": "@illegal"}
-            ],
+            "seq": [{"id": "x", "type": "u1", "repeat": "expr", "repeat_expr": "@illegal"}],
         }
         spec = parse_spec(data)
         v = ExpressionValidator()
@@ -459,9 +457,7 @@ class TestExpressionValidatorCoverage:
         """Cover expression_validator.py line 84: _check_field_exprs runs for types.*.seq."""
         data = {
             "meta": {"id": "p", "endian": "le"},
-            "types": {
-                "hdr": {"seq": [{"id": "x", "type": "u1", "if": "@illegal"}]}
-            },
+            "types": {"hdr": {"seq": [{"id": "x", "type": "u1", "if": "@illegal"}]}},
         }
         spec = parse_spec(data)
         v = ExpressionValidator()

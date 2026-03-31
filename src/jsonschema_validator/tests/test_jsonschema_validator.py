@@ -8,8 +8,11 @@ from jsonschema_validator.models import SchemaValidationError
 from jsonschema_validator.backends.base import AbstractSchemaValidator
 from jsonschema_validator.backends.jsonschema_backend import JsonschemaBackend
 from jsonschema_validator.backends.jsonscreamer_backend import JsonscreamerBackend
-from jsonschema_validator.factory import ValidatorFactory, BackendNotAvailableError, available_backends
-
+from jsonschema_validator.factory import (
+    ValidatorFactory,
+    BackendNotAvailableError,
+    available_backends,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures / helpers
@@ -433,9 +436,7 @@ class TestProtocollabLikeSchema:
     @pytest.mark.parametrize("backend_cls", [JsonschemaBackend, JsonscreamerBackend])
     def test_bad_endian_enum(self, backend_cls) -> None:
         v = backend_cls()
-        errors = v.validate(
-            self.BASE_SCHEMA, {"meta": {"id": "ping_protocol", "endian": "middle"}}
-        )
+        errors = v.validate(self.BASE_SCHEMA, {"meta": {"id": "ping_protocol", "endian": "middle"}})
         assert len(errors) > 0
         assert any("endian" in e.path for e in errors)
 

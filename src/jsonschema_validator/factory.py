@@ -10,7 +10,6 @@ from typing import Any, Dict
 
 from jsonschema_validator.backends.base import AbstractSchemaValidator
 
-
 # Registry of known backend names → import path + class name
 _BACKEND_REGISTRY: dict[str, tuple[str, str]] = {
     "jsonscreamer": (
@@ -125,8 +124,7 @@ class ValidatorFactory:
             return self._auto_select()
         if backend not in _BACKEND_REGISTRY:
             raise BackendNotAvailableError(
-                f"Unknown backend {backend!r}. "
-                f"Available backends: {sorted(_BACKEND_REGISTRY)}"
+                f"Unknown backend {backend!r}. " f"Available backends: {sorted(_BACKEND_REGISTRY)}"
             )
         return backend
 
@@ -153,9 +151,7 @@ class ValidatorFactory:
         try:
             module = __import__(module_path, fromlist=[class_name])
         except ImportError as exc:
-            raise BackendNotAvailableError(
-                f"Backend {backend!r} is not available: {exc}"
-            ) from exc
+            raise BackendNotAvailableError(f"Backend {backend!r} is not available: {exc}") from exc
         cls_obj = getattr(module, class_name)
         try:
             return cls_obj(cache=self._cache_validators, **options)

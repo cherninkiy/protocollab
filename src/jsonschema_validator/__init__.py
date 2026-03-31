@@ -26,7 +26,11 @@ Usage example::
         print(err.path, err.message)
 """
 
-from jsonschema_validator.factory import ValidatorFactory, BackendNotAvailableError, available_backends
+from jsonschema_validator.factory import (
+    ValidatorFactory,
+    BackendNotAvailableError,
+    available_backends,
+)
 from jsonschema_validator.models import SchemaValidationError
 
 __all__ = [

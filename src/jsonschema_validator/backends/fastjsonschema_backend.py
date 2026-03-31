@@ -33,7 +33,7 @@ def _build_path(path: list) -> str:
     for segment in path:
         # fastjsonschema uses "data[N]" or "data['key']" notation
         if isinstance(segment, str) and segment.startswith("data"):
-            inner = segment[len("data"):]
+            inner = segment[len("data") :]
             if inner.startswith("[") and inner.endswith("]"):
                 key = inner[1:-1].strip("'\"")
                 try:
