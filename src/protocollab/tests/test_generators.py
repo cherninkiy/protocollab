@@ -29,6 +29,32 @@ def ping_spec():
 
 
 @pytest.fixture()
+def ping_spec_with_instances():
+    """Ping spec with Wireshark virtual fields backed by expressions."""
+    return {
+        "meta": {"id": "ping_protocol", "endian": "le", "title": "Ping Protocol"},
+        "seq": [
+            {"id": "type_id", "type": "u1"},
+            {"id": "src_ip", "type": "u4"},
+            {"id": "dst_ip", "type": "u4"},
+        ],
+        "instances": {
+            "lan": {
+                "value": (
+                    "((src_ip & 0xFF000000) == 0x0A000000) or "
+                    "((src_ip & 0xFFFF0000) == 0xC0A80000)"
+                ),
+                "wireshark": {"type": "bool", "filter-only": True, "label": "LAN"},
+            },
+            "scope": {
+                "value": '"lan" if lan else "inet"',
+                "wireshark": {"type": "string", "label": "Scope"},
+            },
+        },
+    }
+
+
+@pytest.fixture()
 def be_spec():
     """Big-endian protocol spec."""
     return {
@@ -277,6 +303,46 @@ class TestLuaGeneratorContent:
             gen = LuaGenerator()
             paths = gen.generate(spec, tmp_path)
             assert paths[0].exists()
+
+    def test_supports_expression_backed_wireshark_fields(self, ping_spec_with_instances, tmp_path):
+        src = LuaGenerator().generate(ping_spec_with_instances, tmp_path)[0].read_text()
+        assert 'ProtoField.bool("ping_protocol.lan", "LAN")' in src
+        assert 'ProtoField.string("ping_protocol.scope", "Scope")' in src
+        assert "local value_lan = " in src
+        assert "local value_scope = " in src
+
+    def test_filter_only_bool_is_added_only_when_true(self, ping_spec_with_instances, tmp_path):
+        src = LuaGenerator().generate(ping_spec_with_instances, tmp_path)[0].read_text()
+        assert "if value_lan then" in src
+        assert "subtree:add(f_lan, buffer(0, 0), true)" in src
+
+    def test_string_instance_is_added_as_virtual_field(self, ping_spec_with_instances, tmp_path):
+        src = LuaGenerator().generate(ping_spec_with_instances, tmp_path)[0].read_text()
+        assert "subtree:add(f_scope, buffer(0, 0), value_scope)" in src
+
+    def test_bitwise_instances_compile_to_bit32_calls(self, ping_spec_with_instances, tmp_path):
+        src = LuaGenerator().generate(ping_spec_with_instances, tmp_path)[0].read_text()
+        assert "bit32.band((value_src_ip), (4278190080))" in src
+        assert "bit32.band((value_src_ip), (4294901760))" in src
+
+    def test_little_endian_numeric_fields_use_add_le(self, ping_spec_with_instances, tmp_path):
+        src = LuaGenerator().generate(ping_spec_with_instances, tmp_path)[0].read_text()
+        assert "subtree:add_le(f_src_ip, range)" in src
+
+    def test_invalid_wireshark_instance_type_raises(self, tmp_path):
+        spec = {
+            "meta": {"id": "bad_proto", "endian": "le"},
+            "seq": [{"id": "src_ip", "type": "u4"}],
+            "instances": {
+                "scope": {
+                    "value": '"lan"',
+                    "wireshark": {"type": "number"},
+                }
+            },
+        }
+
+        with pytest.raises(GeneratorError, match="wireshark.type"):
+            LuaGenerator().generate(spec, tmp_path)
 
 
 # ---------------------------------------------------------------------------

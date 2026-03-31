@@ -43,6 +43,32 @@ def _check_field_exprs(
                 )
 
 
+def _check_instance_exprs(
+    instances: dict[str, object],
+    context_path: str,
+    issues: List[ValidationIssue],
+) -> None:
+    """Validate ``value`` expressions in ``instances:`` mappings."""
+    for instance_name, instance_def in instances.items():
+        if not isinstance(instance_def, dict):
+            continue
+
+        value_expr = instance_def.get("value")
+        if not isinstance(value_expr, str):
+            continue
+
+        errs = validate_expr(value_expr)
+        for err in errs:
+            issues.append(
+                ValidationIssue(
+                    path=f"{context_path}.{instance_name}.value",
+                    message=f"Syntax error in expression {value_expr!r}: {err}",
+                    level=ValidationLevel.ERROR,
+                    code="E3",
+                )
+            )
+
+
 class ExpressionValidator(BaseValidator):
     """Validate expression syntax in ``if:`` and ``repeat-expr:`` fields.
 
@@ -55,4 +81,5 @@ class ExpressionValidator(BaseValidator):
         _check_field_exprs(spec.seq, "seq", issues)
         for type_name, type_def in spec.types.items():
             _check_field_exprs(type_def.seq, f"types.{type_name}.seq", issues)
+        _check_instance_exprs(spec.instances, "instances", issues)
         return issues
