@@ -246,6 +246,16 @@ class TestSchemaValidator:
         assert sv.validate({"name": "ok"}) == []
         assert len(sv.validate({"other": 1})) > 0
 
+    def test_explicit_jsonschema_backend(self):
+        sv = SchemaValidator(backend="jsonschema")
+        errors = sv.validate({"meta": {"id": "my_proto"}})
+        assert errors == []
+
+    def test_auto_backend_default(self):
+        sv = SchemaValidator()  # backend defaults to "auto"
+        errors = sv.validate({"meta": {"id": "my_proto"}})
+        assert errors == []
+
 
 # ---------------------------------------------------------------------------
 # ValidationResult model
