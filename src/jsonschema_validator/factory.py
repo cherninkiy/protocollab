@@ -6,7 +6,7 @@ callers, providing a single entry point for backend construction.
 
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Dict
 
 from jsonschema_validator.backends.base import AbstractSchemaValidator
 
@@ -74,7 +74,6 @@ class ValidatorFactory:
         cls,
         backend: str = "auto",
         cache: bool = True,
-        **options: Any,
     ) -> AbstractSchemaValidator:
         """Create (or reuse a cached) backend instance.
 
@@ -89,8 +88,6 @@ class ValidatorFactory:
         cache:
             Pass ``cache=True`` (default) to cache compiled validators inside
             the backend.
-        **options:
-            Extra keyword arguments forwarded to the backend constructor.
 
         Returns
         -------
@@ -102,24 +99,27 @@ class ValidatorFactory:
         BackendNotAvailableError
             When the requested backend is not installed or the name is unknown.
         """
-        factory = cls._shared_factories.setdefault(cache, cls(cache=cache))
-        return factory._get_or_create(backend, **options)
+        factory = cls._shared_factories.get(cache)
+        if factory is None:
+            factory = cls(cache=cache)
+            cls._shared_factories[cache] = factory
+        return factory.get_or_create(backend)
 
     # ------------------------------------------------------------------
     # Instance-level helpers
     # ------------------------------------------------------------------
 
-    def _get_or_create(
-        self,
-        backend: str,
-        **options: Any,
-    ) -> AbstractSchemaValidator:
+    def get_or_create(self, backend: str) -> AbstractSchemaValidator:
         resolved = self._resolve_backend_name(backend)
         if resolved in self._instances:
             return self._instances[resolved]
-        instance = self._build(resolved, **options)
+        instance = self._build(resolved)
         self._instances[resolved] = instance
         return instance
+
+    def _get_or_create(self, backend: str) -> AbstractSchemaValidator:
+        """Backward-compatible wrapper for tests and internal callers."""
+        return self.get_or_create(backend)
 
     def _resolve_backend_name(self, backend: str) -> str:
         """Return the concrete backend name for *backend* (resolves ``auto``)."""
@@ -148,8 +148,8 @@ class ValidatorFactory:
             "Install at least one of: jsonscreamer, jsonschema"
         )
 
-    def _build(self, backend: str, **options: Any) -> AbstractSchemaValidator:
-        """Instantiate the named backend, propagating *cache* and *options*."""
+    def _build(self, backend: str) -> AbstractSchemaValidator:
+        """Instantiate the named backend, propagating the cache setting."""
         module_path, class_name = _BACKEND_REGISTRY[backend]
         try:
             module = __import__(module_path, fromlist=[class_name])
@@ -157,7 +157,7 @@ class ValidatorFactory:
             raise BackendNotAvailableError(f"Backend {backend!r} is not available: {exc}") from exc
         cls_obj = getattr(module, class_name)
         try:
-            return cls_obj(cache=self._cache_validators, **options)
+            return cls_obj(cache=self._cache_validators)
         except ImportError as exc:
             raise BackendNotAvailableError(
                 f"Backend {backend!r} dependency is missing: {exc}"

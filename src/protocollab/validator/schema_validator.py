@@ -39,7 +39,8 @@ class SchemaValidator:
         path = Path(schema_path) if schema_path else _DEFAULT_SCHEMA_PATH
         with open(path, encoding="utf-8") as fh:
             self._schema: Dict[str, Any] = json.load(fh)
-        self._backend: AbstractSchemaValidator = ValidatorFactory.create(backend=backend)
+        factory = ValidatorFactory()
+        self._backend: AbstractSchemaValidator = factory.get_or_create(backend)
 
     def validate(self, data: Dict[str, Any]) -> List[ValidationError]:
         """Return a list of :class:`ValidationError` for *data* (empty = valid).

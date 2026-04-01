@@ -204,6 +204,10 @@ class TestFieldDefAlias:
         )
         assert field.repeat_expr == "count"
 
+    def test_size_accepts_string(self) -> None:
+        field = FieldDef.model_validate({"id": "body", "size": "payload_size"})
+        assert field.size == "payload_size"
+
     def test_none_by_default(self) -> None:
         field = FieldDef.model_validate({"id": "x", "type": "u1"})
         assert field.if_expr is None

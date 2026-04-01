@@ -34,7 +34,7 @@ class FieldDef(BaseModel):
 
     id: str
     type: Optional[str] = None
-    size: Optional[int] = None
+    size: int | str | None = None
     doc: Optional[str] = None
     if_expr: Optional[str] = Field(None, alias="if")
     repeat: Optional[str] = None

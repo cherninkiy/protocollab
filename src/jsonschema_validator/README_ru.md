@@ -142,7 +142,7 @@ validator = ValidatorFactory.create(backend="fastjsonschema")
 from jsonschema_validator import ValidatorFactory
 ```
 
-#### `ValidatorFactory.create(backend: str = "auto", cache: bool = True, **options)`
+#### `ValidatorFactory.create(backend: str = "auto", cache: bool = True)`
 
 Создаёт экземпляр валидатора для выбранного backend.
 

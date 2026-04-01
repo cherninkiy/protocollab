@@ -338,6 +338,23 @@ class TestValidatorFactory:
         v2 = ValidatorFactory.create(backend="jsonschema")
         assert v1 is v2
 
+    def test_classmethod_does_not_recreate_existing_shared_factory(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        original_init = ValidatorFactory.__init__
+        factory = ValidatorFactory(cache=True)
+        ValidatorFactory._shared_factories[True] = factory
+
+        def fail_init(self, cache: bool = True) -> None:
+            raise AssertionError("shared factory should be reused")
+
+        monkeypatch.setattr(ValidatorFactory, "__init__", fail_init)
+        try:
+            validator = ValidatorFactory.create(backend="jsonschema")
+            assert validator is factory.get_or_create("jsonschema")
+        finally:
+            monkeypatch.setattr(ValidatorFactory, "__init__", original_init)
+
     def test_fastjsonschema_not_in_auto(self) -> None:
         from jsonschema_validator.factory import _AUTO_PRIORITY
 

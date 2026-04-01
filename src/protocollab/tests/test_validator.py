@@ -299,6 +299,11 @@ class TestSchemaValidatorDslFields:
         }
         assert sv.validate(data) == []
 
+    def test_backend_is_not_shared_between_instances(self):
+        left = SchemaValidator(backend="jsonschema")
+        right = SchemaValidator(backend="jsonschema")
+        assert left._backend is not right._backend
+
     def test_if_expr_non_string_rejected(self):
         sv = SchemaValidator()
         data = {
