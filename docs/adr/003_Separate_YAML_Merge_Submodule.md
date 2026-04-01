@@ -50,7 +50,7 @@ We will **extract the merge functionality into a new submodule called `yaml_merg
 
 ### Mitigations
 - Keep both packages in a single monorepository with a shared toolchain (Poetry workspace) to minimise coordination overhead.
-- Provide a simple method in `yaml_serializer.Session` (e.g., `session.merge()`) that internally imports `yaml_merger` if available, offering a unified user experience without mandatory dependency.
+- Provide a simple method in `yaml_serializer.SerializerSession` (e.g., `session.merge()`) that internally imports `yaml_merger` if available, offering a unified user experience without mandatory dependency.
 - Add a stabilization phase for `yaml_serializer` before building `yaml_merger` (see Implementation Plan).
 
 ## Implementation Plan
