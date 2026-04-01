@@ -1,137 +1,123 @@
-# `protocollab`
+# protocollab
 
-> **Опиши один раз. Сгенерируй всё.**
+[English version](README.md)
 
-`protocollab` — это open-source фреймворк для объявления, валидации и генерации реализаций **сетевых и бинарных протоколов** из человекочитаемых YAML-спецификаций.
+> Опиши один раз. Сгенерируй всё.
 
-Напишите один `.yaml`-файл → получите Python-парсеры, Wireshark-диссекторы, mock-, Scapy L2- и TCP L3-runtime для демо, тестовые наборы и документацию — всё из единого источника правды.
+`protocollab` — open-source фреймворк для описания, валидации и генерации реализаций сетевых и бинарных протоколов из человекочитаемых YAML-спецификаций.
 
-[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#текущее-состояние)
-[![Coverage](https://img.shields.io/badge/coverage-100%25%20yaml__serializer-brightgreen)](#текущее-состояние)
+Одна `.yaml`-спецификация позволяет получить Python-парсеры, Wireshark-диссекторы, mock runtime, Scapy Layer 2 demo, TCP Layer 3 demo, тестовые наборы и документацию из одного источника правды.
+
+[![Tests](https://img.shields.io/badge/tests-passing-brightgreen)](#состояние-проекта)
+[![Coverage](https://img.shields.io/badge/coverage-100%25%20critical__modules-brightgreen)](#состояние-проекта)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#установка)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
 ---
 
-## Зачем `protocollab`?
+## Зачем protocollab?
 
-Большинство инструментов сериализации (Protobuf, Thrift, FlatBuffers) ориентированы **на данные** или **на RPC**. `protocollab` ориентирован **на протокол**:
+Большинство инструментов сериализации ориентированы на данные или RPC. `protocollab` ориентирован на протокол как на главный артефакт: вокруг спецификации строятся валидация, генерация, demo-сценарии и сопутствующий tooling.
 
-| Возможность | Protobuf / Thrift | Kaitai Struct | `protocollab` |
+| Возможность | Protobuf / Thrift | Kaitai Struct | protocollab |
 |---|---|---|---|
-| Протоколы с состоянием (FSM) | Нет | Нет | Планируется (CE: плоский, Pro: иерархический) |
+| Protocol-first workflow | Нет | Частично | Да |
 | Генерация Wireshark-диссекторов | Нет | Да | Да |
-| Встроенная защита загрузчика | Нет | Нет | Да — многоуровневый загрузчик |
-| Валидация спецификаций (JSON Schema) | Нет | Нет | Да |
 | Генерация Python-парсеров | Да | Да | Да |
-| Open-source сообщество | Да | Да | Да |
+| Валидация через JSON Schema | Нет | Нет | Да |
+| Защищённый YAML loader | Нет | Нет | Да |
+| Готовые demo runtime | Нет | Нет | Да |
+| Roadmap для stateful-протоколов | Ограниченно | Нет | Планируется |
 
 ---
 
-## Для кого?
+## Что Входит
 
-- **Разработчики протоколов** — embedded, телеком, IoT, fintech
-- **QA-инженеры** — автоматически сгенерированные тест-сьюты для проверки протоколов
-- **Сетевые аналитики** — генерация Wireshark-диссекторов из спецификаций
-- **Инженеры по данным** — структурированное извлечение данных из бинарных форматов (roadmap)
+- Безопасный YAML-формат для описания протоколов
+- CLI-команды для загрузки, валидации и генерации артефактов из спецификации
+- Отдельный пакет `yaml_serializer` для защищённой обработки YAML
+- Отдельный пакет `jsonschema_validator` для подключаемой валидации JSON Schema
+- Генераторы Python-парсеров, Wireshark Lua-диссекторов, mock runtime, L2 Scapy runtime и L3 socket runtime
+- Demo workflow, которые проверяют полный путь от спецификации до готовых артефактов
 
 ---
 
-## Быстрый старт
+## Репозиторий Спецификаций
+
+Community-driven репозиторий спецификаций доступен здесь: [protocollab-specs](https://github.com/cherninkiy/protocollab-specs).
+
+Это центральная курируемая коллекция YAML-описаний протоколов, совместимых с `protocollab`. Каждую спецификацию можно валидировать, версионировать и использовать для генерации парсеров, Wireshark-диссекторов и тестовых наборов.
+
+Используйте `protocollab`, когда нужен сам фреймворк и генераторы. Используйте `protocollab-specs`, когда нужен каталог переиспользуемых спецификаций, поддерживаемый сообществом.
+
+---
+
+## Быстрый Старт
 
 ### Установка
 
 ```bash
-# 1. Клонировать репозиторий
 git clone https://github.com/cherninkiy/protocollab
 cd protocollab
 
-# 2. Установить основные зависимости, описанные в pyproject.toml
 poetry install
 
-# 3. Установить optional backend-ы валидации JSON Schema для полного тест-сьюта
+# Optional backend-ы JSON Schema для полного validator test suite
 poetry install --extras "validator-jsonscreamer validator-fastjsonschema"
 ```
 
-`protocollab` использует Poetry для управления зависимостями. Основные и
-optional зависимости описаны в `pyproject.toml`, включая pluggable backend-ы
-валидации JSON Schema.
+`protocollab` использует Poetry для управления зависимостями. Основные и optional зависимости описаны в `pyproject.toml`.
 
-> **Примечание:** Тесты optional backend-ов автоматически пропускаются, если
-> соответствующие Poetry extras не установлены.
+Тесты optional backend-ов в `src/jsonschema_validator/tests/` автоматически пропускаются, если соответствующие extras не установлены.
 
-
-Через `instances:` можно также объявлять виртуальные Wireshark-поля, если у
-записи есть выражение `value:` и блок `wireshark:`. Используйте
-`wireshark.type: bool` вместе с `filter-only: true` для shortcut-полей вроде
-`myproto.lan`, а `wireshark.type: string` для summary-полей вроде
-`myproto.scope == "lan"`.
-
-В каталоге examples есть оба варианта: `examples/simple/ip_scoped_packet.yaml`
-для одного поля `scope` и `examples/simple/ip_scoped_frame.yaml` для раздельных
-фильтров `src_scope` / `dst_scope`.
-
-### Написать спецификацию
+### Написать Спецификацию
 
 ```yaml
-# examples/simple/ping_protocol.yaml
 meta:
   id: ping_protocol
   endian: le
-  title: "Ping Protocol"
-  description: "Simple ICMP-like ping/pong protocol"
+  title: Ping Protocol
+  description: Simple ICMP-like ping/pong protocol
 
 seq:
   - id: type_id
     type: u1
-    doc: "Тип сообщения (0 = запрос, 1 = ответ)"
+    doc: Тип сообщения (0 = запрос, 1 = ответ)
   - id: sequence_number
     type: u4
-    doc: "Порядковый номер, переполнение при 2^32"
+    doc: Порядковый номер, переполнение при 2^32
   - id: payload_size
     type: u2
-    doc: "Размер полезной нагрузки после заголовка, в байтах"
+    doc: Размер полезной нагрузки после заголовка, в байтах
 ```
 
-### Загрузить и валидировать
+### Загрузить и Провалидировать
 
 ```bash
-# Загрузить и просмотреть (вывод в JSON или YAML)
 protocollab load examples/simple/ping_protocol.yaml --output-format json
-
-# Валидация по базовой схеме
 protocollab validate examples/simple/ping_protocol.yaml
-
-# Строгая валидация (без неизвестных полей)
 protocollab validate examples/simple/ping_protocol.yaml --strict
 ```
 
-### Сгенерировать код
+### Сгенерировать Артефакты
 
 ```bash
-# Python dataclass-парсер
 protocollab generate python examples/simple/ping_protocol.yaml --output build/
-
-# Wireshark Lua-диссектор
 protocollab generate wireshark examples/simple/ping_protocol.yaml --output build/
-
-# Mock runtime на очередях
 protocollab generate mock-client examples/simple/ping_protocol.yaml --output build/
 protocollab generate mock-server examples/simple/ping_protocol.yaml --output build/
-
-# TCP L3 socket runtime
-protocollab generate l3-client examples/simple/ping_protocol.yaml --output build/
-protocollab generate l3-server examples/simple/ping_protocol.yaml --output build/
-
-# Scapy L2 runtime
 protocollab generate l2-client examples/simple/ping_protocol.yaml --output build/
 protocollab generate l2-server examples/simple/ping_protocol.yaml --output build/
+protocollab generate l3-client examples/simple/ping_protocol.yaml --output build/
+protocollab generate l3-server examples/simple/ping_protocol.yaml --output build/
 ```
 
+### Использовать Сгенерированный Парсер
+
 ```python
-# Использование сгенерированного парсера
-from build.ping_protocol_parser import PingProtocol
 import io
+
+from build.ping_protocol_parser import PingProtocol
 
 data = bytes([0x00, 0x01, 0x00, 0x00, 0x00, 0x40, 0x00])
 proto = PingProtocol.parse(io.BytesIO(data))
@@ -140,173 +126,161 @@ print(proto.type_id, proto.sequence_number, proto.payload_size)
 
 ---
 
-## Текущее состояние
+## Замечания По Спецификациям
 
-**Фаза 1 завершена.** Набор тестов проходит.
+Через `instances:` можно объявлять виртуальные поля Wireshark, если запись содержит выражение `value:` и блок `wireshark:`.
 
-| Компонент | Статус | Примечания |
-|---|---|---|
-| `yaml_serializer` | ✅ 100% покрытие | Защищённый YAML-загрузчик: `!include`, лимиты глубины/размера, защита от path traversal и Billion Laughs |
-| `protocollab.loader` | ✅ | `load_protocol()`, `get_global_loader()`, `configure_global()`, `ProtocolLoader`, LRU `MemoryCache` |
-| `protocollab.validator` | ✅ | JSON Schema Draft 7, схемы `base` и `strict` |
-| `protocollab.generators` | ✅ | Python-парсер, Wireshark-диссектор, mock client/server, L2 Scapy client/server, L3 socket client/server, Jinja2 |
-| CLI `protocollab load` | ✅ | `--output-format json\|yaml`, `--no-cache`, флаги безопасности |
-| CLI `protocollab validate` | ✅ | `--strict`, `--schema`, коды выхода 0/1/2/3 |
-| CLI `protocollab generate` | ✅ | `generate python\|wireshark\|mock-client\|mock-server\|l2-client\|l2-server\|l3-client\|l3-server FILE -o DIR`, коды выхода 0/1/2/4 |
-| Примеры | ✅ | `examples/simple/` — ping-протокол, Ethernet-фрейм |
-| Демо-сценарии | ✅ | `demo/mock` для очередей, `demo/l2` для Scapy L2, `demo/l3` для TCP + Wireshark |
-| Тесты — `yaml_serializer` | ✅ | 100% покрытие |
-| Тесты — `protocollab` | ✅ | loader, cache, utils, CLI, validator, generators |
-| **Набор тестов** | ✅ | Все проходят |
+- Используйте `wireshark.type: bool` вместе с `filter-only: true` для shortcut-полей вроде `myproto.lan`
+- Используйте `wireshark.type: string` для summary-полей вроде `myproto.scope == "lan"`
 
-## Демо-сценарии
+Актуальные примеры:
 
-В репозитории есть три demo entrypoint для одной и той же спецификации `examples/simple/ping_protocol.yaml`:
-
-- `demo/mock` генерирует парсер и queue-based runtime `MockClient` / `MockServer`, а полный сценарий проверяется командой `python demo/mock/demo.py check`
-- `demo/l2` — это рабочее Scapy Layer 2 демо: оно генерирует парсер, `L2ScapyClient` / `L2ScapyServer` и Wireshark Lua-диссектор; локальная проверка выполняется через `python demo/l2/demo.py check`, а живой обмен запускается командой `python demo/l2/demo.py run --iface <name>`
-- `demo/l3` генерирует парсер, TCP runtime `L3SocketClient` / `L3SocketServer` и Wireshark Lua-диссектор, а полный сценарий проверяется командой `python demo/l3/demo.py check`
-
-**Рабочие transport demo:** `demo/l2` покрывает живой Scapy-based Layer 2 обмен, а `demo/l3` покрывает localhost TCP обмен и разбор в Wireshark.
-
-**Защищённый YAML-загрузчик**: модуль `yaml_serializer` защищён от распространённых атак: защита от YAML bombs (Billion Laughs-style расширение алиасов/якорей YAML), path traversal в `!include`, ограничения глубины рекурсии и размера файлов. Это обеспечивает безопасную обработку недоверенных спецификаций.
-
-### Фаза 2 (в разработке)
-- Система типов: примитивные и пользовательские типы (`protocollab.core`)
-- Разрешение импортов между файлами
-- Движок выражений (безопасный, без `eval`)
-- Семантическая валидация
-- Генерация кода на C++ (превью)
-
-### Фаза 3+ (roadmap)
-- Протоколы с состоянием — плоский FSM (Community), иерархические statecharts (Pro)
-- Генераторы для C++ / Rust / Java (Pro)
-- Автоматическая генерация тестов и фаззинг (Pro)
-- Система плагинов (Enterprise)
+- `examples/simple/ip_scoped_packet.yaml` для одного поля `scope`
+- `examples/simple/ip_scoped_frame.yaml` для раздельных фильтров `src_scope` и `dst_scope`
 
 ---
 
-## Архитектура
+## Состояние Проекта
 
-```
+Критические модули сейчас имеют полное покрытие, а основные CLI- и generator-workflow уже реализованы.
+
+| Область | Статус | Примечания |
+|---|---|---|
+| `yaml_serializer` | Stable | Безопасный YAML loader, `!include`, сохранение форматирования, 100% покрытие |
+| `jsonschema_validator` | Stable | Подключаемые backend-ы, единая модель ошибок, безопасный auto mode, 100% покрытие |
+| `protocollab.loader` | Available | Безопасная загрузка, кэширование, интеграция через session-based API |
+| `protocollab.validator` | Available | Базовая и строгая валидация схем через facade backend selection |
+| `protocollab.generators` | Available | Генераторы Python, Wireshark, mock, L2 и L3 |
+| CLI | Available | Команды `load`, `validate`, `generate` |
+| Demo workflow | Available | `demo/mock`, `demo/l2`, `demo/l3` |
+
+---
+
+## Demo Workflows
+
+В репозитории есть три demo entrypoint для одной и той же спецификации `examples/simple/ping_protocol.yaml`.
+
+- `demo/mock` генерирует парсер и queue-based runtime `MockClient` и `MockServer`
+- `demo/l2` генерирует парсер, `L2ScapyClient`, `L2ScapyServer` и Wireshark Lua-диссектор
+- `demo/l3` генерирует парсер, `L3SocketClient`, `L3SocketServer` и Wireshark Lua-диссектор
+
+Команды для проверки:
+
+- `python demo/mock/demo.py check`
+- `python demo/l2/demo.py check`
+- `python demo/l3/demo.py check`
+
+Команды для живых transport demo:
+
+- `python demo/l2/demo.py run --iface <name>`
+- `python demo/l3/demo.py run`
+
+---
+
+## Структура Репозитория
+
+```text
 src/
-├── yaml_serializer/          # Защищённый YAML-загрузчик (подмодуль)
-│   ├── serializer.py         # SerializerSession — основной API
-│   ├── safe_constructor.py   # Ограничения безопасности
-│   ├── utils.py              # canonical_repr, is_path_within_root, ...
-│   ├── merge.py              # Слияние деревьев !include
-│   └── modify.py             # Мутации структуры
-│
-└── protocollab/              # Основной пакет
-    ├── main.py               # CLI (Click): load | validate | generate
-    ├── exceptions.py         # FileLoadError (выход 1), YAMLParseError (выход 2)
-    ├── loader/               # load_protocol(), get_global_loader(), configure_global(), LRU MemoryCache
-    ├── validator/            # validate_protocol() + JSON Schema
-    │   └── schemas/
-    │       ├── base.schema.json      # разрешающая, совместимая с KSY
-    │       └── protocol.schema.json  # строгая (additionalProperties: false)
-    ├── generators/           # generate() + parser/dissector/mock/L2/L3 generators
-    │   └── templates/
-    │       ├── python/parser.py.j2
-    │       ├── python/mock_client.py.j2
-    │       ├── python/mock_server.py.j2
-    │       ├── python/l2_client.py.j2
-    │       ├── python/l2_server.py.j2
-    │       ├── python/l3_client.py.j2
-    │       ├── python/l3_server.py.j2
-    │       └── lua/dissector.lua.j2
-    └── utils/                # resolve_path, to_json, to_yaml, print_data
+|-- yaml_serializer/          # Безопасная загрузка YAML и round-trip сохранение
+|-- jsonschema_validator/     # Подключаемый фасад для валидации JSON Schema
+`-- protocollab/              # CLI, loader, validator, generator, utilities
 
-  demo/
-  ├── mock/                     # демо со сгенерированным queue-based runtime
-  ├── l2/                       # демо со сгенерированным Scapy L2 runtime
-  └── l3/                       # демо со сгенерированным TCP runtime и Wireshark
+demo/
+|-- mock/                     # Queue-based generated runtime demo
+|-- l2/                       # Scapy Layer 2 generated runtime demo
+`-- l3/                       # TCP Layer 3 generated runtime demo
 
 examples/
-├── simple/                   # ping_protocol.yaml, ethernet_frame.yaml
-└── with_includes/            # base_types.yaml, tcp_like.yaml
+|-- simple/                   # Однофайловые описания протоколов
+`-- with_includes/            # Многофайловые примеры с !include
+
+docs/
+`-- adr/                      # Architecture decision records
 ```
 
-**Цепочка зависимостей:**
-```
-CLI (main.py)
- └─ protocollab.loader     ──→ yaml_serializer.serializer
- └─ protocollab.validator  ──→ jsonschema.Draft7Validator
- └─ protocollab.generators ──→ jinja2.Environment
+Высокоуровневая цепочка зависимостей:
+
+```text
+CLI
+|-- protocollab.loader      -> yaml_serializer
+|-- protocollab.validator   -> jsonschema_validator
+`-- protocollab.generators  -> Jinja2 templates
 ```
 
 ---
 
-## Стек технологий
+## Технологический Стек
 
 | Область | Инструмент |
 |---|---|
 | Язык | Python 3.10+ |
-| YAML-парсер | ruamel.yaml |
+| YAML processing | ruamel.yaml |
 | CLI | Click 8.x |
-| Валидация схем | jsonschema 4.x (Draft 7) |
-| Генерация кода | Jinja2 3.x |
-| Модели данных | Pydantic v2 |
-| Сборка | pyproject.toml (Poetry) |
-| Тестирование | pytest + pytest-cov |
+| Валидация схем | jsonschema, jsonscreamer, fastjsonschema |
+| Шаблоны | Jinja2 3.x |
+| Модели | Pydantic v2 |
+| Сборка | Poetry |
+| Тестирование | pytest, pytest-cov |
 
 ---
 
-## Запуск тестов
+## Запуск Тестов
 
 ```bash
-# Все тесты с покрытием
 poetry run pytest src/ -q
-
-# Только yaml_serializer (100% покрытие)
 poetry run pytest src/yaml_serializer/tests/ --cov=yaml_serializer --cov-report=term-missing
-
-# Только protocollab
+poetry run pytest src/jsonschema_validator/tests/ --cov=jsonschema_validator --cov-report=term-missing
 poetry run pytest src/protocollab/tests/ --cov=protocollab --cov-report=term-missing
 ```
 
-Тесты optional backend-ов в `src/jsonschema_validator/tests/` пропускаются,
-если extras `validator-jsonscreamer` или `validator-fastjsonschema` не
-установлены.
+---
+
+## Roadmap
+
+### Ближайшие Шаги
+
+- Примитивные и пользовательские типы в `protocollab.core`
+- Разрешение импортов между файлами
+- Безопасный движок выражений без `eval`
+- Семантическая валидация
+- Ранняя поддержка генерации C++
+
+### Дальше
+
+- Stateful-протоколы с flat FSM в Community Edition
+- Hierarchical statecharts в Pro
+- Дополнительные генераторы для C++, Rust и Java
+- Генерация тестов и фаззинг
+- Система плагинов и enterprise-интеграции
 
 ---
 
 ## Community Edition vs Pro
 
-| | Community (этот репозиторий) | Pro | Enterprise |
+| Возможность | Community | Pro | Enterprise |
 |---|---|---|---|
-| Генерация Python + Lua | ✅ | ✅ | ✅ |
-| Mock, L2 и L3 demo runtime | ✅ | ✅ | ✅ |
-| Валидация базовой и строгой схемами | ✅ | ✅ | ✅ |
-| Плоский FSM (≤10 состояний) | Планируется | ✅ | ✅ |
-| Генерация C++ / Rust / Java | — | ✅ | ✅ |
-| Иерархические statecharts | — | ✅ | ✅ |
-| Генерация тестов + фаззинг | — | ✅ | ✅ |
-| CI/CD actions, кастомные генераторы | — | — | ✅ |
+| Генерация Python и Lua | Да | Да | Да |
+| Mock, L2 и L3 demo runtime | Да | Да | Да |
+| Базовая и строгая валидация схем | Да | Да | Да |
+| Flat FSM | Планируется | Да | Да |
+| Генераторы C++, Rust, Java | Нет | Да | Да |
+| Hierarchical statecharts | Нет | Да | Да |
+| Генерация тестов и фаззинг | Нет | Да | Да |
+| Кастомные генераторы и CI/CD actions | Нет | Нет | Да |
 
 ---
 
-## Участие в разработке
+## Участие В Разработке
 
-Вклад приветствуется! Пожалуйста, прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) и следуйте нашему [Кодексу поведения](CODE_OF_CONDUCT.md).
+Вклад приветствуется. Перед открытием pull request ознакомьтесь с [CONTRIBUTING.md](CONTRIBUTING.md) и [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-1. Сделайте fork репозитория
-2. Создайте ветку для своей фичи от `dev`: `git checkout -b feature/my-feature`
-3. Напишите тесты для новой функциональности
-4. Запустите полный тест-сьют: `poetry run pytest src/ -q`
-5. Откройте Pull Request в ветку `dev`
+1. Сделайте fork репозитория.
+2. Создайте feature-ветку от `dev`.
+3. Добавьте или обновите тесты под свои изменения.
+4. Запустите релевантный локальный test suite.
+5. Откройте pull request в `dev`.
 
-Ветка разработки: `dev` · Remote: [github.com/cherninkiy/protocollab/tree/dev](https://github.com/cherninkiy/protocollab/tree/dev)
-
----
-
-## Вдохновение
-
-- [Kaitai Struct](https://kaitai.io/) — декларативное описание бинарных форматов
-- [OpenAPI](https://www.openapis.org/) — specification-first дизайн API
-- [Protocol Buffers](https://protobuf.dev/) — строгая типизация и генерация кода
-- [Scapy](https://scapy.net/) — конструирование и тестирование протоколов
-- [Harel statecharts](https://www.sciencedirect.com/science/article/pii/0167642387900359) — формализм реактивных систем
+Ветка разработки: [github.com/cherninkiy/protocollab/tree/dev](https://github.com/cherninkiy/protocollab/tree/dev)
 
 ---
 

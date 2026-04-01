@@ -5,9 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2026-03-25
+## [Unreleased] - 2026-04-01
+
+### Added
+
+- **`src/jsonschema_validator/`**: Introduced a standalone pluggable JSON Schema
+  validation facade as described by ADR 002. The package now provides a backend-
+  agnostic public API, `ValidatorFactory`, `SchemaValidationError`, backend
+  discovery helpers, and independent tests/docs so validation logic can evolve
+  outside `protocollab.*` internals while remaining reusable from them.
+
+- **`src/jsonschema_validator/backends/`**: Added three backend adapters with
+  explicit policy boundaries:
+  - `jsonschema` as the compatibility-oriented safe fallback
+  - `jsonscreamer` as the preferred safe backend in `auto` mode when installed
+  - `fastjsonschema` as the performance-oriented backend requiring explicit opt-in
+
+- **`pyproject.toml`**: Added optional Poetry extras for JSON Schema backend
+  selection: `validator-jsonscreamer` and `validator-fastjsonschema`.
+
+- **`docs/adr/002_Pluggable_JSON_Schema_Validator.md`** and
+  **`docs/adr/002_Pluggable_JSON_Schema_Validator_RU.md`**: ADR 002 is now
+  reflected by the implemented package structure, backend policy, and packaging
+  approach used in the repository.
 
 ### Changed
+
+- **`src/protocollab/validator/`**: Replaced direct `jsonschema` coupling with the
+  new `jsonschema_validator` facade so backend selection, error normalization, and
+  backend-specific tradeoffs are encapsulated behind a reusable validation layer.
+
+- **`src/protocollab` CLI and validation flow**: Validation now preserves the
+  existing user-facing dot-notation error paths such as `meta.id` and
+  `seq[0].type` while delegating backend-specific error mapping to the facade.
+
+- **`.github/workflows/ci.yml`**, **`pyproject.toml`**, **`setup.py`**,
+  **`README.md`**, **`README_ru.md`**, demo READMEs, and module READMEs:
+  repository packaging and documentation were aligned around Poetry, optional
+  validator extras, the standalone `jsonschema_validator` package, and the
+  current Apache 2.0 licensing layout.
+
+- **`README.md`** and **`README_ru.md`**: Root documentation now reflects the
+  current architecture (`yaml_serializer`, `jsonschema_validator`, and
+  `protocollab`), includes language-switch links between English and Russian,
+  points to the external `protocollab-specs` repository, and describes coverage
+  as 100% for the critical modules rather than a single submodule.
 
 - **`yaml_serializer/serializer.py`**: Replaced the module-level `SerializerContext`
   singleton and free functions (`load_yaml_root`, `save_yaml_root`, `rename_yaml_file`,
@@ -22,8 +64,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`yaml_serializer/utils.py`**, **`yaml_serializer/safe_constructor.py`**,
   **`yaml_serializer/merge.py`**: All remaining Russian docstrings and comments
   translated to English ([`141eef5`]).
-
-### Added
 
 - **`protocollab/loader/__init__.py`**: Added `get_global_loader()` to expose the
   module-level `ProtocolLoader` for inspection and cache management, and
@@ -43,7 +83,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to replace global state with explicit sessions in `yaml_serializer` and the
   hybrid-design pattern for `protocollab.loader` ([`52b0e22`]).
 
+- **`src/jsonschema_validator/tests/`**: Added backend-specific and integration
+  coverage for factory selection, cache behaviour, normalized error paths,
+  schema-path formatting, optional dependency handling, and backend probing.
+
 ### Security
+
+- **`src/jsonschema_validator` backend policy**: `auto` mode remains safe for
+  untrusted-schema workflows by excluding `fastjsonschema` from automatic
+  selection. `fastjsonschema` remains available only through explicit opt-in
+  because it relies on generated code and `exec`.
 
 - **`yaml_serializer/utils.py`**: `is_path_within_root()` no longer accepts `None` as
   `root_dir`. Previously, `None` silently bypassed path validation and allowed any path
@@ -58,13 +107,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`src/jsonschema_validator/backends/fastjsonschema_backend.py`**: Validation now
+  collects a complete error set through the compatibility fallback instead of
+  surfacing only the first backend-native error. Validator caching and fallback
+  reuse paths are also covered by tests.
+
+- **`src/jsonschema_validator/backends/jsonscreamer_backend.py`** and
+  **`src/protocollab/tests/test_validator.py`**: Schema-path normalization and
+  assertions were aligned so user-visible errors remain backend-agnostic while
+  preserving compatible dot-notation paths.
+
 - **`protocollab/tests/`**: `FieldDef` instances in tests are now constructed via
   `FieldDef.model_validate({"id": …, "type": …, "if": …})` instead of direct keyword
   arguments. Using keyword arguments bypassed Pydantic's alias mapping (`if` → `if_expr`,
   `repeat` → `repeat_expr`), causing tests to silently exercise incorrect code paths
   ([`2b84714`]).
-
-### Added
 
 - **`protocollab/loader/base_loader.py`**: Added `assert isinstance(result, dict)` after
   `canonical_repr()` to surface unexpected return types early ([`86433a2`]).
