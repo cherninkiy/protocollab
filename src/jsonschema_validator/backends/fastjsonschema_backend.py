@@ -28,31 +28,6 @@ from jsonschema_validator.backends.jsonschema_backend import _format_path, _form
 from jsonschema_validator.models import SchemaValidationError
 
 
-def _build_path(path: list) -> str:
-    """Convert a fastjsonschema path list to dot-notation."""
-    if not path:
-        return "(root)"
-    parts: list[str] = []
-    for segment in path:
-        # fastjsonschema uses "data[N]" or "data['key']" notation
-        if isinstance(segment, str) and segment.startswith("data"):
-            inner = segment[len("data") :]
-            if inner.startswith("[") and inner.endswith("]"):
-                key = inner[1:-1].strip("'\"")
-                try:
-                    idx = int(key)
-                    if parts:
-                        parts[-1] = f"{parts[-1]}[{idx}]"
-                    else:
-                        parts.append(f"[{idx}]")
-                    continue
-                except ValueError:
-                    parts.append(key)
-                    continue
-        parts.append(str(segment))
-    return ".".join(parts) if parts else "(root)"
-
-
 class FastjsonschemaBackend(AbstractSchemaValidator):
     """JSON Schema validation backed by ``fastjsonschema``.
 

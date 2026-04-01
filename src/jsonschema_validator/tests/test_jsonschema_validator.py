@@ -564,42 +564,6 @@ class TestFastjsonschemaBackend:
         with pytest.raises(ImportError, match="fastjsonschema"):
             FastjsonschemaBackend()
 
-
-# ===========================================================================
-# _build_path helper (fastjsonschema)
-# ===========================================================================
-
-
-class TestFastjsonschemaBuildPath:
-    def _path(self, segments: list) -> str:
-        from jsonschema_validator.backends.fastjsonschema_backend import _build_path
-
-        return _build_path(segments)
-
-    def test_empty_path_returns_root(self) -> None:
-        assert self._path([]) == "(root)"
-
-    def test_data_integer_index_first(self) -> None:
-        # data[0] with no prior segment → "[0]"
-        assert self._path(["data[0]"]) == "[0]"
-
-    def test_data_integer_index_appended(self) -> None:
-        # data['key'] followed by data[2] → "key[2]"
-        assert self._path(["data['key']", "data[2]"]) == "key[2]"
-
-    def test_data_string_key(self) -> None:
-        assert self._path(["data['name']"]) == "name"
-
-    def test_data_double_quoted_key(self) -> None:
-        assert self._path(['data["meta"]']) == "meta"
-
-    def test_plain_segment(self) -> None:
-        assert self._path(["meta"]) == "meta"
-
-    def test_multiple_plain_segments(self) -> None:
-        assert self._path(["meta", "id"]) == "meta.id"
-
-
 # ===========================================================================
 # Integer-first path coverage (jsonschema and jsonscreamer _format_path)
 # ===========================================================================
