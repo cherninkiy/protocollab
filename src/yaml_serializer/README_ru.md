@@ -1,7 +1,7 @@
 # yaml_serializer
 
 **Безопасный загрузчик/сохранитель YAML с поддержкой `!include`, отслеживанием изменений и сохранением форматирования**  
-*Часть фреймворка [`protocollab`](https://github.com/yourname/protocollab)*
+*Часть фреймворка [`protocollab`](https://github.com/cherninkiy/protocollab)*
 
 `yaml_serializer` — библиотека Python на основе `ruamel.yaml`, предоставляющая безопасный, готовый к продакшену способ загрузки, модификации и сохранения YAML-файлов. Это основа обработки спецификаций протоколов в `protocollab`, но может использоваться независимо в любом Python-проекте.
 
@@ -30,7 +30,7 @@ pip install protocollab
 Для использования только сериализатора без остальной части `protocollab`:
 
 ```bash
-pip install git+https://github.com/yourname/protocollab.git
+pip install git+https://github.com/cherninkiy/protocollab.git
 ```
 
 После установки импортируйте так:
@@ -39,7 +39,7 @@ pip install git+https://github.com/yourname/protocollab.git
 from yaml_serializer import SerializerSession
 ```
 
-> **Примечание:** требуется Python 3.8 или новее
+> **Примечание:** требуется Python 3.10 или новее
 
 ---
 
@@ -69,26 +69,12 @@ session.save()
 ```
 yaml_serializer/
 ├── __init__.py           # Экспорт публичного API
-├── core.py               # load_protocol, save_protocol, управление файлами
-├── include.py            # Конструктор !include и разрешение путей
-├── modify.py             # Вспомогательные функции для безопасных модификаций
-├── utils.py              # Валидация путей, hash-файлы, хэширование
-├── safe_constructor.py   # Безопасный YAML конструктор, блокирует опасные теги
-├── merge.py              # (TODO) Функциональность трёхстороннего слияния
-├── safe_loader.py        # (Зарезервировано) Будущая реализация безопасного загрузчика
-└── tests/
-    ├── __init__.py
-    ├── conftest.py       # Общие fixtures (temp_dir, sample data)
-    ├── test_basic.py     # Smoke tests (10 тестов)
-    ├── test_core.py      # Основная функциональность (10 тестов)
-    ├── test_hashing.py   # Операции с хэшами (6 тестов)
-    ├── test_include.py   # Директивы include (9 тестов)
-    ├── test_integration.py # Интеграционные сценарии (9 тестов)
-    ├── test_modify.py    # Вспомогательные функции модификации (16 тестов)
-    ├── test_security.py  # Функции безопасности (17 тестов)
-    ├── test_utils.py     # Утилиты (9 тестов)
-    ├── test_validation.py # Стабы валидации (6 тестов)
-    └── validation_stub.py # Минимальный стаб валидации для тестирования
+├── serializer.py         # SerializerSession, загрузка, сохранение, переименование
+├── safe_constructor.py   # Безопасный YAML-конструктор и лимиты безопасности
+├── modify.py             # Вспомогательные функции для модификации YAML-дерева
+├── utils.py              # Проверка путей, хэширование, include-хелперы, dirty-tracking
+├── merge.py              # Заглушка для будущей логики merge
+└── tests/                # Набор тестов для загрузки, includes, безопасности и session API
 ```
 
 ---
@@ -110,17 +96,21 @@ team:
 ```
 
 ```python
-data = load_protocol("main.yaml")
+from yaml_serializer import SerializerSession
+
+session = SerializerSession()
+data = session.load("main.yaml")
 print(data["team"]["lead"]["name"])  # выведет "Alice"
 ```
 
 ### Модификация вложенных структур
 
 ```python
-from protocollab.yaml_serializer import load_protocol, save_protocol
-from protocollab.yaml_serializer.modify import add_to_dict
+from yaml_serializer import SerializerSession
+from yaml_serializer.modify import add_to_dict
 
-data = load_protocol('protocol.yaml')
+session = SerializerSession()
+data = session.load('protocol.yaml')
 
 # Добавление нового поля в вложенный тип
 add_to_dict(data['types']['Message'], 'timestamp', 'u64')
@@ -129,65 +119,86 @@ add_to_dict(data['types']['Message'], 'timestamp', 'u64')
 add_to_dict(data['types'], 'NewType', {'field': 'value'})
 
 # Сохранение только изменённых файлов
-save_protocol(only_if_changed=True)
+session.save(only_if_changed=True)
 ```
 
 ### Безопасная загрузка с ограничениями
 
 ```python
+from yaml_serializer import SerializerSession
+
 config = {
     'max_file_size': 5 * 1024 * 1024,   # 5 МБ
+    'max_struct_depth': 20,               # макс. глубина YAML-структуры (по умолчанию 50)
     'max_include_depth': 20,              # макс. глубина вложенности
     'max_imports': 50                      # макс. количество включаемых файлов
 }
 
-data = load_protocol('protocol.yaml', config=config)
+session = SerializerSession(config)
+data = session.load('protocol.yaml')
+
+# Переопределение лимитов для конкретного вызова load
+data = session.load('protocol.yaml', config={'max_imports': 10})
 ```
 
 ### Переименование файлов с автообновлением `!include`
 
 ```python
-from protocollab.yaml_serializer import load_protocol, rename_protocol_file, save_protocol
+from yaml_serializer import SerializerSession
 
-data = load_protocol('main.yaml')
+session = SerializerSession()
+session.load('main.yaml')
 
 # Переименование включённого файла — все ссылки !include обновятся автоматически
-rename_protocol_file('old_name.yaml', 'new_name.yaml')
+session.rename('old_name.yaml', 'new_name.yaml')
 
-save_protocol()
+session.save()
 ```
 
 ---
 
 ## 📖 API Reference
 
-### Основные функции
+### `SerializerSession` (основной API)
 
-#### `load_protocol(path: str, config: Optional[dict] = None) -> CommentedMap`
-Загружает YAML-протокол с разрешением всех директив `!include`.
+```python
+from yaml_serializer import SerializerSession
+```
 
-**Параметры:**
-- `path` — путь к главному YAML-файлу
-- `config` — опциональный словарь с настройками безопасности:
-  - `max_file_size` — максимальный размер файла в байтах (по умолчанию 10 МБ)
-  - `max_include_depth` — максимальная глубина вложенности includes (по умолчанию 50)
-  - `max_imports` — максимальное количество включаемых файлов (по умолчанию 100)
+Каждый экземпляр полностью независим: его можно безопасно использовать в
+параллельных тестах, в разных потоках и для нескольких несвязанных наборов YAML.
 
-#### `save_protocol(only_if_changed: bool = True)`
-Сохраняет протокол и все включённые файлы обратно на диск.
+#### `SerializerSession(config: Optional[dict] = None)`
+Создаёт session с опциональной конфигурацией по умолчанию.
 
-**Параметры:**
-- `only_if_changed` — если `True` (по умолчанию), записываются только изменённые файлы
+| Ключ | Значение по умолчанию | Описание |
+|------|------------------------|----------|
+| `max_file_size` | 10 МБ | Максимальный размер файла в байтах |
+| `max_struct_depth` | 50 | Максимальная глубина YAML-структуры |
+| `max_include_depth` | 50 | Максимальная глубина цепочки `!include` |
+| `max_imports` | 100 | Максимальное число include-операций |
 
-#### `rename_protocol_file(old_path: str, new_path: str)`
+#### `session.load(path: str, config: Optional[dict] = None) -> CommentedMap`
+Загружает `path` и разрешает все директивы `!include`. Параметр `config`
+позволяет переопределить конфигурацию session для конкретного вызова.
+
+#### `session.save(only_if_changed: bool = True)`
+Сохраняет изменённые файлы обратно на диск. По умолчанию пропускает файлы,
+контент которых не изменился.
+
+#### `session.rename(old_path: str, new_path: str)`
 Переименовывает загруженный файл и обновляет все ссылки `!include` на него.
 
-#### `propagate_dirty(file_path: str)`
-Помечает как изменённые любые узлы, ссылающиеся на данный файл. Используется внутри после модификаций, затрагивающих includes.
+#### `session.propagate_dirty(file_path: str)`
+Помечает как dirty все файлы, которые ссылаются на `file_path` через `!include`.
+
+#### `session.clear()`
+Сбрасывает загруженное состояние session, сохраняя её конфигурацию по умолчанию.
 
 ### Функции модификации
 
-Все функции модификации автоматически обновляют родительские связи и dirty-флаги:
+Публичные helper-функции, экспортируемые `yaml_serializer`, автоматически
+обновляют родительские связи и dirty-флаги:
 
 - `new_commented_map(initial: Optional[dict] = None, parent: Optional[Node] = None) -> CommentedMap`
 - `new_commented_seq(initial: Optional[list] = None, parent: Optional[Node] = None) -> CommentedSeq`
@@ -198,17 +209,9 @@ save_protocol()
 - `remove_from_list(target: CommentedSeq, index: int)`
 - `get_node_hash(node: Union[CommentedMap, CommentedSeq]) -> str` — возвращает хэш узла (пересчитывает при необходимости)
 
-### Вспомогательные функции (`utils.py`)
-
-Утилиты для работы с путями, hash-файлами и хэширование:
-
-- `hash_file_path(yaml_path: str) -> str` — возвращает путь к hash-файлу
-- `load_hash_from_file(yaml_path: str) -> str | None` — загружает сохранённый хэш
-- `save_hash_to_file(yaml_path: str, hash_value: str) -> None` — сохраняет хэш в файл
-- `resolve_include_path(base_file: str, include_path: str) -> str` — разрешает относительный путь включения
-- `is_path_within_root(path: str, root_dir: str) -> bool` — проверяет, находится ли разрешённый путь внутри корневой директории
-- `canonical_repr(data: Any) -> dict/list` — создаёт каноническое представление для хэширования
-- `compute_hash(data: Any) -> str` — вычисляет SHA-256 хэш канонического представления
+Модули `utils.py`, `safe_constructor.py` и внутренняя часть `serializer.py`
+считаются низкоуровневыми деталями реализации. Для обычного использования
+ориентируйтесь на `SerializerSession` и публично экспортируемые helper-функции.
 
 ---
 
@@ -268,7 +271,10 @@ poetry run pytest src/yaml_serializer/tests/
 
 ## 📄 Лицензия
 
-`yaml_serializer` является частью `protocollab` и распространяется под лицензией **MIT**. См. файл [LICENSE](LICENSE) для деталей.
+`yaml_serializer` является частью проекта `protocollab` и наследует его
+лицензию **Apache License 2.0**. Копия лицензии доступна в файле
+[LICENSE](LICENSE), а канонический текст лицензии проекта также находится в
+корне репозитория: [../../LICENSE](../../LICENSE).
 
 ---
 
