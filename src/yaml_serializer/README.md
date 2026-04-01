@@ -231,9 +231,12 @@ directly, prefer `SerializerSession` plus the re-exported helpers from
 
 ## 🛡️ Public API Stability
 
-The following functions from `yaml_serializer.utils` are considered stable for
-advanced use and are covered by backward-compatibility guarantees for the
-`yaml_serializer 1.x` line:
+The following functions from `yaml_serializer.utils` are considered part of the
+intended public API for advanced use. While the project is still in the `0.x`
+phase, this API may still evolve when needed, but breaking changes should be
+called out explicitly in the release notes. Once `yaml_serializer` reaches
+`1.0.0`, these functions will be covered by backward-compatibility guarantees
+for the `yaml_serializer 1.x` line:
 
 - `canonical_repr`
 - `compute_hash`
@@ -247,7 +250,7 @@ advanced use and are covered by backward-compatibility guarantees for the
 - `mark_includes`
 
 These functions are exported via `yaml_serializer.utils.__all__` and marked with
-the `stable_api` metadata decorator in the source.
+the `_stable_api` metadata decorator in the source.
 
 Helpers prefixed with `_` are internal implementation details and may change
 without notice.

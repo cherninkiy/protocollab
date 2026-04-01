@@ -25,13 +25,13 @@ __all__ = [
 YamlNode = CommentedMap | CommentedSeq
 
 
-def stable_api(func: Callable[..., Any]) -> Callable[..., Any]:
+def _stable_api(func: Callable[..., Any]) -> Callable[..., Any]:
     """Mark a function as part of the stable advanced-use API."""
     func.__stable_api__ = True
     return func
 
 
-def internal_use_only(func: Callable[..., Any]) -> Callable[..., Any]:
+def _internal_use_only(func: Callable[..., Any]) -> Callable[..., Any]:
     """Mark a function as internal and free to change without notice."""
     func.__internal_use_only__ = True
     return func
@@ -40,7 +40,7 @@ def internal_use_only(func: Callable[..., Any]) -> Callable[..., Any]:
 logger = logging.getLogger(__name__)
 
 
-@stable_api
+@_stable_api
 def canonical_repr(node: Any) -> Any:
     """Build a deterministic Python representation of a YAML node for hashing."""
     logger.debug("Building canonical representation for %s", type(node).__name__)
@@ -53,7 +53,7 @@ def canonical_repr(node: Any) -> Any:
     return node
 
 
-@stable_api
+@_stable_api
 def compute_hash(node: Any) -> str:
     """Compute a SHA-256 hash from the canonical representation of *node*."""
     logger.debug("Computing hash for node")
@@ -65,7 +65,7 @@ def compute_hash(node: Any) -> str:
     return hash_value
 
 
-@internal_use_only
+@_internal_use_only
 def _hash_file_path(yaml_path: str) -> str:
     """Return the sidecar path used to store the persisted hash for *yaml_path*."""
     result = yaml_path + ".hash"
@@ -73,7 +73,7 @@ def _hash_file_path(yaml_path: str) -> str:
     return result
 
 
-@internal_use_only
+@_internal_use_only
 def _load_hash_from_file(yaml_path: str) -> str | None:
     """Load a previously saved hash sidecar for *yaml_path* if it exists."""
     path = _hash_file_path(yaml_path)
@@ -87,7 +87,7 @@ def _load_hash_from_file(yaml_path: str) -> str | None:
     return None
 
 
-@internal_use_only
+@_internal_use_only
 def _save_hash_to_file(yaml_path: str, hash_value: str) -> None:
     """Persist *hash_value* to the sidecar file associated with *yaml_path*."""
     path = _hash_file_path(yaml_path)
@@ -96,7 +96,7 @@ def _save_hash_to_file(yaml_path: str, hash_value: str) -> None:
         f.write(hash_value)
 
 
-@stable_api
+@_stable_api
 def update_file_attr(node: Any, old_file: str, new_file: str) -> None:
     """Recursively update ``_yaml_file`` values from *old_file* to *new_file*."""
     if isinstance(node, (CommentedMap, CommentedSeq)):
@@ -111,7 +111,7 @@ def update_file_attr(node: Any, old_file: str, new_file: str) -> None:
                 update_file_attr(item, old_file, new_file)
 
 
-@internal_use_only
+@_internal_use_only
 def _update_parent_file_attr(node: Any, old_file: str, new_file: str) -> None:
     """Recursively replace ``_yaml_parent_file`` references from *old_file* to *new_file*."""
     if isinstance(node, (CommentedMap, CommentedSeq)):
@@ -125,7 +125,7 @@ def _update_parent_file_attr(node: Any, old_file: str, new_file: str) -> None:
                 _update_parent_file_attr(item, old_file, new_file)
 
 
-@stable_api
+@_stable_api
 def is_path_within_root(path: str, root_dir: str) -> bool:
     """Return True if *path* resolves to a location inside *root_dir*, else False."""
     try:
@@ -135,7 +135,7 @@ def is_path_within_root(path: str, root_dir: str) -> bool:
         return False
 
 
-@stable_api
+@_stable_api
 def mark_dirty(node: Any) -> None:
     """Mark *node* as dirty, recompute its hash, and propagate to its parents."""
     if node is None:
@@ -153,7 +153,7 @@ def mark_dirty(node: Any) -> None:
         mark_dirty(node._yaml_parent)
 
 
-@stable_api
+@_stable_api
 def mark_node(node: Any, filename: str, parent: YamlNode | None = None) -> None:
     """Attach file, parent, hash, and dirty metadata to a YAML subtree."""
     if isinstance(node, (CommentedMap, CommentedSeq)):
@@ -176,7 +176,7 @@ def mark_node(node: Any, filename: str, parent: YamlNode | None = None) -> None:
                 mark_node(item, filename, parent=node)
 
 
-@stable_api
+@_stable_api
 def clear_dirty(node: Any) -> None:
     """Recursively clear the dirty flag on *node* and all descendants."""
     if isinstance(node, (CommentedMap, CommentedSeq)):
@@ -190,7 +190,7 @@ def clear_dirty(node: Any) -> None:
                 clear_dirty(item)
 
 
-@stable_api
+@_stable_api
 def resolve_include_path(base_file: str, include_path: str) -> str:
     """Resolve *include_path* relative to *base_file* and return an absolute path."""
     base = Path(base_file).resolve().parent
@@ -199,7 +199,7 @@ def resolve_include_path(base_file: str, include_path: str) -> str:
     return result
 
 
-@stable_api
+@_stable_api
 def mark_includes(
     node: Any,
     target_file: str,
@@ -225,7 +225,7 @@ def mark_includes(
     return found
 
 
-@stable_api
+@_stable_api
 def replace_included(
     node: Any,
     old_file: str,

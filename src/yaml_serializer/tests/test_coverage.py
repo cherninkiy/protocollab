@@ -57,7 +57,7 @@ class TestUpdateFileAttrSeq:
 
 class TestUpdateParentFileAttrSeq:
     def test_update_parent_file_attr_seq_children(self):
-        """update_parent_file_attr recursively updates _yaml_parent_file in seq children."""
+        """_update_parent_file_attr recursively updates _yaml_parent_file in seq children."""
         root = CommentedSeq()
         child_map = CommentedMap()
         child_map._yaml_parent_file = "old-parent.yaml"
