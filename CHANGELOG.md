@@ -83,6 +83,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `jsonschema_validator` can be built and released separately as `1.0.0`
   packages while remaining part of the monorepo.
 
+- **`src/jsonschema_validator/pyproject.toml`**, **`src/jsonschema_validator/README.md`**,
+  and **`src/jsonschema_validator/README_ru.md`**: The standalone distribution
+  name now tracks the published PyPI package `jsonschema-pluggable-validator`
+  while keeping the Python import path as `jsonschema_validator`.
+
+- **`pyproject.toml`**, **`src/jsonschema_validator/pyproject.toml`**, and
+  **`src/yaml_serializer/pyproject.toml`**: Author metadata now uses
+  `cherninkiy <cherninkiy@gmail.com>`. The standalone packages were also bumped
+  to `1.0.1` for metadata-only PyPI releases so the published package metadata
+  matches the repository state.
+
 - **`protocollab/loader/__init__.py`**: Added `get_global_loader()` to expose the
   module-level `ProtocolLoader` for inspection and cache management, and
   `configure_global(max_cache_size)` to reconfigure the shared cache at runtime.
