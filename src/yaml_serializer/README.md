@@ -1,9 +1,9 @@
 # yaml_serializer
 
 **A secure YAML loader/dumper with `!include` support, change tracking, and round‑trip preservation**  
-*Part of the [`protocollab`](https://github.com/yourname/protocollab) framework.*
+*Part of the [`protocollab`](https://github.com/cherninkiy/protocollab) framework.*
 
-`yaml_serializer` is a Python library built on top of `ruamel.yaml` that provides a safe, production‑ready way to load, modify, and save YAML files. It is the foundation of `protocollab’s` protocol definition handling, but can also be used independently in any Python project that needs robust YAML processing.
+`yaml_serializer` is a Python library built on top of `ruamel.yaml` that provides a safe, production‑ready way to load, modify, and save YAML files. It is the foundation of `protocollab`'s protocol definition handling, but can also be used independently in any Python project that needs robust YAML processing.
 
 ---
 
@@ -30,7 +30,7 @@ pip install protocollab
 If you prefer to use only the serializer without the rest of `protocollab`, you can copy the `yaml_serializer` folder into your project or install directly from the repository:
 
 ```bash
-pip install git+https://github.com/yourname/protocollab.git
+pip install git+https://github.com/cherninkiy/protocollab.git
 ```
 
 After installation, import it as:
@@ -39,7 +39,7 @@ After installation, import it as:
 from yaml_serializer import SerializerSession
 ```
 
-> **Note:** `yaml_serializer` requires Python 3.8 or later.
+> **Note:** `yaml_serializer` requires Python 3.10 or later.
 
 ---
 
@@ -60,6 +60,21 @@ add_to_dict(data, "new_key", "new_value")
 
 # Save only changed files, preserving all comments and formatting
 session.save()
+```
+
+---
+
+## 📁 Module Structure
+
+```
+yaml_serializer/
+├── __init__.py           # Public API exports
+├── serializer.py         # SerializerSession, loading, saving, renaming
+├── safe_constructor.py   # Restricted YAML constructor and safety limits
+├── modify.py             # Helpers for mutating YAML trees with dirty tracking
+├── utils.py              # Path checks, hashing, include helpers, dirty propagation
+├── merge.py              # Placeholder for future merge functionality
+└── tests/                # Test suite for loading, includes, security, and sessions
 ```
 
 ---
@@ -196,7 +211,8 @@ Reset all loaded state. Configuration defaults are preserved.
 
 ---
 
-All modification functions automatically update parent links and dirty flags.
+The public helper functions exported from `yaml_serializer` complement the
+session API and automatically update parent links and dirty flags.
 
 - `new_commented_map(initial: Optional[dict] = None, parent: Optional[Node] = None) -> CommentedMap`
 - `new_commented_seq(initial: Optional[list] = None, parent: Optional[Node] = None) -> CommentedSeq`
@@ -207,11 +223,10 @@ All modification functions automatically update parent links and dirty flags.
 - `remove_from_list(target: CommentedSeq, index: int)`
 - `get_node_hash(node: Union[CommentedMap, CommentedSeq]) -> str` – returns the node’s hash (recalculates if dirty).
 
-### Utility functions
-
-- `is_path_within_root(path: str, root_dir: str) -> bool` – checks whether a resolved path is inside the root directory.
-- `canonical_repr(data: Any) -> dict/list` – builds a canonical representation for hashing.
-- `compute_hash(data: Any) -> str` – computes a SHA‑256 hash of the canonical representation.
+The lower-level internals in `utils.py`, `safe_constructor.py`, and
+`serializer.py` are implementation details of the current codebase. When using
+the library directly, prefer `SerializerSession` plus the re-exported helpers
+from `yaml_serializer`.
 
 ---
 
@@ -241,13 +256,13 @@ The module has an extensive test suite covering all critical paths.
 To run tests locally:
 
 ```bash
-pytest yaml_serializer/tests/ --cov=yaml_serializer
+poetry run pytest src/yaml_serializer/tests/ --cov=yaml_serializer
 ```
 
 For more detailed output:
 
 ```bash
-pytest yaml_serializer/tests/ -v --cov=yaml_serializer --cov-report=term-missing
+poetry run pytest src/yaml_serializer/tests/ -v --cov=yaml_serializer --cov-report=term-missing
 ```
 
 ---
@@ -259,19 +274,11 @@ pytest yaml_serializer/tests/ -v --cov=yaml_serializer --cov-report=term-missing
 git clone https://github.com/cherninkiy/protocollab
 cd protocollab
 
-# Create and activate a virtual environment
-python -m venv venv
-source venv/bin/activate      # On Linux/macOS
-# venv\Scripts\activate       # On Windows
-
 # Install dependencies
-pip install -r requirements.txt
-
-# Install the package in editable mode
-pip install -e .
+poetry install
 
 # Run tests
-pytest yaml_serializer/tests/
+poetry run pytest src/yaml_serializer/tests/
 ```
 
 ---
@@ -286,7 +293,10 @@ If you discover a security vulnerability, **do not** open a public issue; instea
 
 ## 📄 License
 
-`yaml_serializer` is part of `protocollab` and is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+`yaml_serializer` is part of the `protocollab` project and inherits the
+project's **Apache License 2.0**. A copy of the license is available in
+[LICENSE](LICENSE), and the repository root also contains the canonical project
+license text in [../../LICENSE](../../LICENSE).
 
 ---
 
