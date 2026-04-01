@@ -73,7 +73,6 @@ yaml_serializer/
 ├── safe_constructor.py   # Безопасный YAML-конструктор и лимиты безопасности
 ├── modify.py             # Вспомогательные функции для модификации YAML-дерева
 ├── utils.py              # Проверка путей, хэширование, include-хелперы, dirty-tracking
-├── merge.py              # Заглушка для будущей логики merge
 └── tests/                # Набор тестов для загрузки, includes, безопасности и session API
 ```
 
@@ -209,9 +208,34 @@ from yaml_serializer import SerializerSession
 - `remove_from_list(target: CommentedSeq, index: int)`
 - `get_node_hash(node: Union[CommentedMap, CommentedSeq]) -> str` — возвращает хэш узла (пересчитывает при необходимости)
 
-Модули `utils.py`, `safe_constructor.py` и внутренняя часть `serializer.py`
+Модули `safe_constructor.py` и большая часть внутренностей `serializer.py`
 считаются низкоуровневыми деталями реализации. Для обычного использования
 ориентируйтесь на `SerializerSession` и публично экспортируемые helper-функции.
+
+---
+
+## 🛡️ Стабильность публичного API
+
+Следующие функции из `yaml_serializer.utils` считаются стабильными для
+продвинутого использования и поддерживаются с гарантиями обратной совместимости
+в ветке `yaml_serializer 1.x`:
+
+- `canonical_repr`
+- `compute_hash`
+- `resolve_include_path`
+- `is_path_within_root`
+- `mark_node`
+- `mark_dirty`
+- `clear_dirty`
+- `update_file_attr`
+- `replace_included`
+- `mark_includes`
+
+Эти функции экспортируются через `yaml_serializer.utils.__all__` и помечены в
+исходном коде метаданными `stable_api`.
+
+Хелперы с префиксом `_` являются внутренними деталями реализации и могут
+изменяться без предварительного уведомления.
 
 ---
 
