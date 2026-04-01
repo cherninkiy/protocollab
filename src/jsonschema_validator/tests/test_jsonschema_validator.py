@@ -564,6 +564,7 @@ class TestFastjsonschemaBackend:
         with pytest.raises(ImportError, match="fastjsonschema"):
             FastjsonschemaBackend()
 
+
 # ===========================================================================
 # Integer-first path coverage (jsonschema and jsonscreamer _format_path)
 # ===========================================================================
