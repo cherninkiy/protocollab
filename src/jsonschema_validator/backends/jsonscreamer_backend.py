@@ -37,6 +37,12 @@ def _format_path(path: list) -> str:
     return ".".join(parts) if parts else "(root)"
 
 
+def _format_schema_path(path: Any) -> str:
+    if not path:
+        return ""
+    return "/".join(str(segment) for segment in path)
+
+
 def _create_jsonscreamer_validator(jsonscreamer_module: Any, schema: Dict[str, Any]) -> Any:
     """Construct a ``jsonscreamer.Validator``, suppressing its format-warning noise.
 
@@ -88,7 +94,7 @@ class JsonscreamerBackend(AbstractSchemaValidator):
     def validate(
         self,
         schema: Dict[str, Any],
-        data: Dict[str, Any],
+        data: Any,
     ) -> List[SchemaValidationError]:
         """Validate *data* against *schema* using ``jsonscreamer``."""
         validator = self._get_validator(schema)
@@ -98,7 +104,7 @@ class JsonscreamerBackend(AbstractSchemaValidator):
                 SchemaValidationError(
                     path=_format_path(list(err.absolute_path)),
                     message=err.message,
-                    schema_path=getattr(err, "validator", "") or "",
+                    schema_path=_format_schema_path(getattr(err, "absolute_schema_path", None)),
                 )
             )
         return errors

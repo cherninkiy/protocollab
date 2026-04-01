@@ -20,7 +20,7 @@ class AbstractSchemaValidator(ABC):
     def validate(
         self,
         schema: Dict[str, Any],
-        data: Dict[str, Any],
+        data: Any,
     ) -> List[SchemaValidationError]:
         """Validate *data* against *schema*.
 

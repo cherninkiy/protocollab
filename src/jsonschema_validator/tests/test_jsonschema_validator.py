@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import importlib.util
+
 import pytest
 
 from jsonschema_validator.models import SchemaValidationError
@@ -33,6 +35,23 @@ VALID_DATA: dict = {"name": "Alice", "age": 30}
 MISSING_NAME: dict = {"age": 30}
 BAD_TYPE_DATA: dict = {"name": 42}
 EXTRA_KEY_DATA: dict = {"name": "Alice", "unexpected": True}
+
+
+def _has_dependency(module_name: str) -> bool:
+    return importlib.util.find_spec(module_name) is not None
+
+
+def _require_jsonscreamer() -> None:
+    pytest.importorskip(
+        "jsonscreamer", reason="Install the validator-jsonscreamer extra to run these tests"
+    )
+
+
+def _require_fastjsonschema() -> None:
+    pytest.importorskip(
+        "fastjsonschema",
+        reason="Install the validator-fastjsonschema extra to run these tests",
+    )
 
 
 # ===========================================================================
@@ -181,6 +200,10 @@ class TestJsonschemaBackend:
 
 
 class TestJsonscreamerBackend:
+    @pytest.fixture(autouse=True)
+    def _require_backend(self) -> None:
+        _require_jsonscreamer()
+
     def test_valid_data_returns_empty(self) -> None:
         v = JsonscreamerBackend()
         assert v.validate(SIMPLE_SCHEMA, VALID_DATA) == []
@@ -274,6 +297,7 @@ class TestValidatorFactory:
         assert isinstance(v, AbstractSchemaValidator)
 
     def test_auto_prefers_jsonscreamer(self) -> None:
+        _require_jsonscreamer()
         v = ValidatorFactory.create(backend="auto")
         assert isinstance(v, JsonscreamerBackend)
 
@@ -282,6 +306,7 @@ class TestValidatorFactory:
         assert isinstance(v, JsonschemaBackend)
 
     def test_explicit_jsonscreamer_backend(self) -> None:
+        _require_jsonscreamer()
         v = ValidatorFactory.create(backend="jsonscreamer")
         assert isinstance(v, JsonscreamerBackend)
 
@@ -329,6 +354,7 @@ class TestAvailableBackends:
         assert "jsonschema" in result
 
     def test_jsonscreamer_available_when_installed(self) -> None:
+        _require_jsonscreamer()
         result = available_backends()
         assert "jsonscreamer" in result
 
@@ -365,11 +391,13 @@ class TestErrorPathNormalization:
         assert any("b" in e.path for e in errors)
 
     def test_jsonscreamer_root_level_error(self) -> None:
+        _require_jsonscreamer()
         v = JsonscreamerBackend()
         errors = v.validate({"type": "object", "required": ["x"]}, {})
         assert any("(root)" in e.path or e.path == "(root)" for e in errors)
 
     def test_jsonscreamer_nested_key_path(self) -> None:
+        _require_jsonscreamer()
         schema = {
             "type": "object",
             "properties": {
@@ -417,17 +445,23 @@ class TestProtocollabLikeSchema:
 
     @pytest.mark.parametrize("backend_cls", [JsonschemaBackend, JsonscreamerBackend])
     def test_valid_spec(self, backend_cls) -> None:
+        if backend_cls is JsonscreamerBackend:
+            _require_jsonscreamer()
         v = backend_cls()
         assert v.validate(self.BASE_SCHEMA, {"meta": {"id": "ping_protocol"}}) == []
 
     @pytest.mark.parametrize("backend_cls", [JsonschemaBackend, JsonscreamerBackend])
     def test_missing_meta(self, backend_cls) -> None:
+        if backend_cls is JsonscreamerBackend:
+            _require_jsonscreamer()
         v = backend_cls()
         errors = v.validate(self.BASE_SCHEMA, {"seq": []})
         assert len(errors) > 0
 
     @pytest.mark.parametrize("backend_cls", [JsonschemaBackend, JsonscreamerBackend])
     def test_bad_id_pattern(self, backend_cls) -> None:
+        if backend_cls is JsonscreamerBackend:
+            _require_jsonscreamer()
         v = backend_cls()
         errors = v.validate(self.BASE_SCHEMA, {"meta": {"id": "PingProtocol"}})
         assert len(errors) > 0
@@ -435,6 +469,8 @@ class TestProtocollabLikeSchema:
 
     @pytest.mark.parametrize("backend_cls", [JsonschemaBackend, JsonscreamerBackend])
     def test_bad_endian_enum(self, backend_cls) -> None:
+        if backend_cls is JsonscreamerBackend:
+            _require_jsonscreamer()
         v = backend_cls()
         errors = v.validate(self.BASE_SCHEMA, {"meta": {"id": "ping_protocol", "endian": "middle"}})
         assert len(errors) > 0
@@ -447,7 +483,11 @@ class TestProtocollabLikeSchema:
 
 
 class TestFastjsonschemaBackend:
-    """Tests for the fastjsonschema backend (always available via jsonscreamer dep)."""
+    """Tests for the fastjsonschema backend."""
+
+    @pytest.fixture(autouse=True)
+    def _require_backend(self) -> None:
+        _require_fastjsonschema()
 
     @pytest.fixture
     def backend(self):
@@ -468,6 +508,19 @@ class TestFastjsonschemaBackend:
         errors = backend.validate(schema, {})
         assert len(errors) > 0
         assert all(isinstance(e, SchemaValidationError) for e in errors)
+
+    def test_collects_all_errors(self, backend) -> None:
+        schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "integer"},
+            },
+            "required": ["name", "age"],
+        }
+        errors = backend.validate(schema, {"name": 1, "age": "x"})
+        assert len(errors) == 2
+        assert {error.path for error in errors} == {"name", "age"}
 
     def test_error_has_non_empty_message(self, backend) -> None:
         schema = {"type": "object", "required": ["x"]}
@@ -513,41 +566,6 @@ class TestFastjsonschemaBackend:
 
 
 # ===========================================================================
-# _build_path helper (fastjsonschema)
-# ===========================================================================
-
-
-class TestFastjsonschemaBuildPath:
-    def _path(self, segments: list) -> str:
-        from jsonschema_validator.backends.fastjsonschema_backend import _build_path
-
-        return _build_path(segments)
-
-    def test_empty_path_returns_root(self) -> None:
-        assert self._path([]) == "(root)"
-
-    def test_data_integer_index_first(self) -> None:
-        # data[0] with no prior segment → "[0]"
-        assert self._path(["data[0]"]) == "[0]"
-
-    def test_data_integer_index_appended(self) -> None:
-        # data['key'] followed by data[2] → "key[2]"
-        assert self._path(["data['key']", "data[2]"]) == "key[2]"
-
-    def test_data_string_key(self) -> None:
-        assert self._path(["data['name']"]) == "name"
-
-    def test_data_double_quoted_key(self) -> None:
-        assert self._path(['data["meta"]']) == "meta"
-
-    def test_plain_segment(self) -> None:
-        assert self._path(["meta"]) == "meta"
-
-    def test_multiple_plain_segments(self) -> None:
-        assert self._path(["meta", "id"]) == "meta.id"
-
-
-# ===========================================================================
 # Integer-first path coverage (jsonschema and jsonscreamer _format_path)
 # ===========================================================================
 
@@ -564,17 +582,22 @@ class TestIntegerFirstPathCoverage:
         assert any("[0]" in e.path for e in errors)
 
     def test_jsonscreamer_backend_integer_first_segment(self) -> None:
+        _require_jsonscreamer()
         v = JsonscreamerBackend()
         schema = {"type": "array", "items": {"type": "string"}}
         errors = v.validate(schema, [123])
         assert any("[0]" in e.path for e in errors)
 
     def test_jsonscreamer_format_path_integer_only(self) -> None:
+        if not _has_dependency("jsonscreamer"):
+            pytest.skip("Install the validator-jsonscreamer extra to run these tests")
         from jsonschema_validator.backends.jsonscreamer_backend import _format_path
 
         assert _format_path([0]) == "[0]"
 
     def test_jsonscreamer_format_path_integer_after_key(self) -> None:
+        if not _has_dependency("jsonscreamer"):
+            pytest.skip("Install the validator-jsonscreamer extra to run these tests")
         from jsonschema_validator.backends.jsonscreamer_backend import _format_path
 
         assert _format_path(["seq", 0]) == "seq[0]"

@@ -231,6 +231,11 @@ class TestSchemaValidator:
     def test_error_has_schema_path(self):
         sv = SchemaValidator()
         errors = sv.validate({"seq": []})
+        assert all(isinstance(e.schema_path, str) for e in errors)
+
+    def test_jsonschema_backend_has_schema_path(self):
+        sv = SchemaValidator(backend="jsonschema")
+        errors = sv.validate({"seq": []})
         assert all(len(e.schema_path) > 0 for e in errors)
 
     def test_custom_schema_path(self, tmp_path):

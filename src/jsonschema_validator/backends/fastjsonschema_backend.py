@@ -21,40 +21,21 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
+from jsonschema import Draft7Validator
+
 from jsonschema_validator.backends.base import AbstractSchemaValidator
+from jsonschema_validator.backends.jsonschema_backend import _format_path, _format_schema_path
 from jsonschema_validator.models import SchemaValidationError
-
-
-def _build_path(path: list) -> str:
-    """Convert a fastjsonschema path list to dot-notation."""
-    if not path:
-        return "(root)"
-    parts: list[str] = []
-    for segment in path:
-        # fastjsonschema uses "data[N]" or "data['key']" notation
-        if isinstance(segment, str) and segment.startswith("data"):
-            inner = segment[len("data") :]
-            if inner.startswith("[") and inner.endswith("]"):
-                key = inner[1:-1].strip("'\"")
-                try:
-                    idx = int(key)
-                    if parts:
-                        parts[-1] = f"{parts[-1]}[{idx}]"
-                    else:
-                        parts.append(f"[{idx}]")
-                    continue
-                except ValueError:
-                    parts.append(key)
-                    continue
-        parts.append(str(segment))
-    return ".".join(parts) if parts else "(root)"
 
 
 class FastjsonschemaBackend(AbstractSchemaValidator):
     """JSON Schema validation backed by ``fastjsonschema``.
 
     Compiled validators are cached by schema object identity when *cache* is
-    ``True`` (default).
+    ``True`` (default). To preserve the project-wide validator contract of
+    collecting all errors in one full pass, invalid payloads fall back to a
+    ``jsonschema`` validation sweep after the fast precompiled validator
+    reports a failure.
 
     Parameters
     ----------
@@ -77,27 +58,36 @@ class FastjsonschemaBackend(AbstractSchemaValidator):
             ) from exc
         self._fastjsonschema = __import__("fastjsonschema")
         self._cache: dict[int, Any] = {}
+        self._jsonschema_cache: dict[int, Draft7Validator] = {}
         self._cache_enabled = cache
 
     def validate(
         self,
         schema: Dict[str, Any],
-        data: Dict[str, Any],
+        data: Any,
     ) -> List[SchemaValidationError]:
         """Validate *data* against *schema* using ``fastjsonschema``."""
         compiled = self._get_compiled(schema)
         try:
             compiled(data)
-        except self._fastjsonschema.JsonSchemaValueException as exc:
-            path = getattr(exc, "path", [])
-            return [
-                SchemaValidationError(
-                    path=_build_path(list(path) if path else []),
-                    message=exc.message,
-                    schema_path="",
-                )
-            ]
+        except self._fastjsonschema.JsonSchemaValueException:
+            return self._collect_all_errors(schema, data)
         return []
+
+    def _collect_all_errors(
+        self,
+        schema: Dict[str, Any],
+        data: Any,
+    ) -> List[SchemaValidationError]:
+        validator = self._get_jsonschema_validator(schema)
+        return [
+            SchemaValidationError(
+                path=_format_path(err),
+                message=err.message,
+                schema_path=_format_schema_path(err),
+            )
+            for err in sorted(validator.iter_errors(data), key=lambda err: list(err.absolute_path))
+        ]
 
     def _get_compiled(self, schema: Dict[str, Any]) -> Any:
         if not self._cache_enabled:
@@ -106,3 +96,11 @@ class FastjsonschemaBackend(AbstractSchemaValidator):
         if key not in self._cache:
             self._cache[key] = self._fastjsonschema.compile(schema)
         return self._cache[key]
+
+    def _get_jsonschema_validator(self, schema: Dict[str, Any]) -> Draft7Validator:
+        if not self._cache_enabled:
+            return Draft7Validator(schema)
+        key = id(schema)
+        if key not in self._jsonschema_cache:
+            self._jsonschema_cache[key] = Draft7Validator(schema)
+        return self._jsonschema_cache[key]

@@ -54,7 +54,7 @@ class JsonschemaBackend(AbstractSchemaValidator):
     def validate(
         self,
         schema: Dict[str, Any],
-        data: Dict[str, Any],
+        data: Any,
     ) -> List[SchemaValidationError]:
         """Validate *data* against *schema* using ``jsonschema``."""
         validator = self._get_validator(schema)
